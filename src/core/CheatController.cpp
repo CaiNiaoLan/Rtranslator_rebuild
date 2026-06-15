@@ -26,5 +26,9 @@ void CheatController::handleMessage(const QString& message) {
             QJsonDocument(obj.value("value").toObject()).toJson(QJsonDocument::Compact));
     } else if (type == "error") {
         emit operationFailed(obj.value("reason").toString());
+    } else if (type == "ack") {
+        bool success = obj.value("success").toBool();
+        QString cmd = obj.value("cmd").toString();
+        emit operationAcknowledged(cmd, success);
     }
 }

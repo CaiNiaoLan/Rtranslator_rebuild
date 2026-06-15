@@ -18,6 +18,7 @@ public:
 signals:
     void stateUpdated(const QString& path, const QString& value);
     void operationFailed(const QString& reason);
+    void operationAcknowledged(const QString& cmd, bool success);
 private:
     SendHandler m_sendHandler;
     void sendCommand(const std::string& json);
