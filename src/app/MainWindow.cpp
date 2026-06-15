@@ -9,14 +9,15 @@ MainWindow::MainWindow(QQmlApplicationEngine* engine, QObject* parent)
       m_transEngine(std::make_unique<TranslationEngine>(std::make_unique<RpgMVAdapter>())),
       m_gameManager(std::make_unique<GameManager>(this)),
       m_cheatController(std::make_unique<CheatController>(this)),
-      m_connected(false)
+      m_connected(false),
+      m_statusText("就绪 — 请选择游戏目录")
 {
     connect(m_gameManager.get(), &GameManager::gameStarted, this, &MainWindow::gameStarted);
     connect(m_gameManager.get(), &GameManager::gameStopped, this, &MainWindow::gameStopped);
     connect(m_gameManager.get(), &GameManager::injectionSucceeded, this, &MainWindow::onInjectionSucceeded);
     connect(m_gameManager.get(), &GameManager::injectionFailed, this, &MainWindow::onInjectionFailed);
     connect(m_gameManager.get(), &GameManager::connectionLost, this, [this]() {
-        m_connected = false; m_statusText = "Connection lost";
+        m_connected = false; m_statusText = "连接已断开";
         emit statusTextChanged(); emit connectionChanged();
     });
     m_gameManager->setAdapter(m_transEngine->adapter());
@@ -41,23 +42,26 @@ void MainWindow::detachGame() { m_gameManager->detach(); }
 
 void MainWindow::loadGameDir(const QString& dir) {
     if (!m_transEngine->detectGame(dir.toStdString())) {
-        m_statusText = "Not a valid RPG Maker MV/MZ game"; emit statusTextChanged(); return;
+        m_statusText = "不是有效的 RPG Maker MV/MZ 游戏"; emit statusTextChanged(); return;
     }
     QDir gameDir(dir);
     QStringList exes = gameDir.entryList({"*.exe"}, QDir::Files);
     for (const auto& exe : exes) {
         if (exe.compare("Game.exe", Qt::CaseInsensitive) == 0 || exe.contains("nw", Qt::CaseInsensitive)) {
             m_gamePath = gameDir.absoluteFilePath(exe); emit gamePathChanged();
-            m_statusText = "Game detected: " + dir; emit statusTextChanged(); return;
+            m_statusText = "已检测到游戏: " + dir; emit statusTextChanged(); return;
         }
     }
-    m_statusText = "No game executable found"; emit statusTextChanged();
+    m_statusText = "未找到游戏可执行文件"; emit statusTextChanged();
 }
 
 void MainWindow::loadTranslationFile(const QString& filePath) {
+    if (m_gamePath.isEmpty()) {
+        m_statusText = "请先选择游戏路径"; emit statusTextChanged(); return;
+    }
     if (m_transEngine->loadTranslation(filePath.toStdString())) {
         int count = static_cast<int>(m_transEngine->translationMap().size());
-        m_transStats = QString("%1 translations loaded").arg(count);
+        m_transStats = QString("已载入 %1 条翻译").arg(count);
         emit translationStatsChanged(); emit translationLoaded(count);
         m_gameManager->setTranslationMap(m_transEngine->translationMap());
         
@@ -86,27 +90,28 @@ void MainWindow::loadTranslationFile(const QString& filePath) {
             m_gameManager->wsServer()->sendMessage(QString::fromStdString(cmd.toJson().dump()));
         }
     } else {
-        m_statusText = "Failed to load translation file"; emit statusTextChanged();
+        m_statusText = "翻译文件加载失败"; emit statusTextChanged();
     }
 }
 
 void MainWindow::extractText() {
-    if (!m_gamePath.isEmpty()) {
-        QFileInfo info(m_gamePath);
-        auto entries = m_transEngine->extractFromGame(info.absolutePath().toStdString());
-        QVariantList list;
-        for (const auto& e : entries) {
-            QVariantMap map;
-            map["id"] = QString::fromStdString(e.id);
-            map["source"] = QString::fromStdString(e.source);
-            map["context"] = QString::fromStdString(e.context);
-            map["original"] = QString::fromStdString(e.original);
-            map["translation"] = QString::fromStdString(e.translation);
-            list.append(map);
-        }
-        m_transStats = QString("%1 strings extracted").arg(list.size());
-        emit translationStatsChanged(); emit extractionComplete(list);
+    if (m_gamePath.isEmpty()) {
+        m_statusText = "请先选择游戏路径"; emit statusTextChanged(); return;
     }
+    QFileInfo info(m_gamePath);
+    auto entries = m_transEngine->extractFromGame(info.absolutePath().toStdString());
+    QVariantList list;
+    for (const auto& e : entries) {
+        QVariantMap map;
+        map["id"] = QString::fromStdString(e.id);
+        map["source"] = QString::fromStdString(e.source);
+        map["context"] = QString::fromStdString(e.context);
+        map["original"] = QString::fromStdString(e.original);
+        map["translation"] = QString::fromStdString(e.translation);
+        list.append(map);
+    }
+    m_transStats = QString("已提取 %1 条文本").arg(list.size());
+    emit translationStatsChanged(); emit extractionComplete(list);
 }
 
 void MainWindow::readGameState(const QString& path) { m_cheatController->readState(path.toStdString()); }
@@ -122,5 +127,5 @@ void MainWindow::writeGameState(const QString& path, const QVariant& value) {
 void MainWindow::triggerBattleVictory() { m_cheatController->battleVictory(); }
 void MainWindow::addItemToInventory(int id, const QString& type, int count) { m_cheatController->addItem(id, type.toStdString(), count); }
 
-void MainWindow::onInjectionSucceeded() { m_connected = true; m_statusText = "Connected"; emit statusTextChanged(); emit connectionChanged(); }
-void MainWindow::onInjectionFailed(const QString& reason) { m_connected = false; m_statusText = "Failed: " + reason; emit statusTextChanged(); emit connectionChanged(); }
+void MainWindow::onInjectionSucceeded() { m_connected = true; m_statusText = "已连接"; emit statusTextChanged(); emit connectionChanged(); }
+void MainWindow::onInjectionFailed(const QString& reason) { m_connected = false; m_statusText = "连接失败: " + reason; emit statusTextChanged(); emit connectionChanged(); }
