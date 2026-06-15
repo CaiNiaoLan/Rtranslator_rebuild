@@ -17,14 +17,23 @@
   window.__rtranslator_installHooks = function() {
     if (!window.Window_Base) { setTimeout(window.__rtranslator_installHooks, 100); return; }
 
-    if (window.Game_Message && window.Game_Message.prototype.add) {
-      var _add = Game_Message.prototype.add;
-      Game_Message.prototype.add = function(text) { _add.call(this, translate(text)); };
+    // Primary hook: Window_Base.prototype.drawText catches ALL text rendering
+    if (Window_Base.prototype.drawText) {
+        var _drawText = Window_Base.prototype.drawText;
+        Window_Base.prototype.drawText = function(text, x, y, maxWidth, align) {
+            _drawText.call(this, translate(text), x, y, maxWidth, align);
+        };
     }
 
-    if (window.Window_Help && window.Window_Help.prototype.setText) {
-      var _setText = Window_Help.prototype.setText;
-      Window_Help.prototype.setText = function(text) { _setText.call(this, translate(text)); };
+    // Secondary: Game_Message.add for message text (caught by drawText too, but belt-and-suspenders)
+    if (window.Game_Message && Game_Message.prototype.add) {
+        var _add = Game_Message.prototype.add;
+        Game_Message.prototype.add = function(text) {
+            _add.call(this, translate(text));
+        };
     }
+
+    // Choice text: Window_ChoiceList.drawItem processes choices before drawText
+    // Window_Command derivatives use drawText internally, so the drawText hook covers them
   };
 })();
