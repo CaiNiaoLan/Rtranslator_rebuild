@@ -33,6 +33,5 @@ private:
     QString m_host;
     quint16 m_port;
     int m_cmdId;
-    int m_injectCmdId;
     DisconnectHandler m_disconnectHandler;
 };
