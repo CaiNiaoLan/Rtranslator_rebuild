@@ -55,7 +55,7 @@ std::vector<TranslationEntry> RpgMVAdapter::extractText(const std::string& gameD
                 }
                 if (event.contains("list")) {
                     extractEventParameters(event["list"], "CommonEvents.json",
-                        "CommonEvent #" + std::to_string(idx), entries);
+                        "CommonEvent #" + std::to_string(idx), idx, 0, entries);
                 }
                 idx++;
             }
@@ -128,7 +128,7 @@ void RpgMVAdapter::extractFromMapFile(const std::string& filePath, const std::st
                 for (const auto& page : event["pages"]) {
                     if (page.is_null() || !page.contains("list")) continue;
                     std::string ctx = "Event #" + std::to_string(eventId) + " Page " + std::to_string(page.value("pageIndex", 0));
-                    extractEventParameters(page["list"], source, ctx, out);
+                    extractEventParameters(page["list"], source, ctx, eventId, page.value("pageIndex", 0), out);
                 }
             }
         }
@@ -136,7 +136,7 @@ void RpgMVAdapter::extractFromMapFile(const std::string& filePath, const std::st
 }
 
 void RpgMVAdapter::extractEventParameters(const nlohmann::json& list, const std::string& source,
-                                           const std::string& context,
+                                           const std::string& context, int eventId, int pageIdx,
                                            std::vector<TranslationEntry>& out) {
     if (!list.is_array()) return;
     int cmdIdx = 0;
@@ -151,7 +151,7 @@ void RpgMVAdapter::extractEventParameters(const nlohmann::json& list, const std:
             if (params.is_array() && params.size() > 0 && params[0].is_string()) {
                 std::string text = params[0].get<std::string>();
                 if (!text.empty()) {
-                    out.push_back({source + "/cmd" + std::to_string(cmdIdx),
+                    out.push_back({source + "/ev" + std::to_string(eventId) + "/p" + std::to_string(pageIdx) + "/cmd" + std::to_string(cmdIdx),
                         source, context + " - Message", "message", text, ""});
                 }
             }
@@ -162,7 +162,7 @@ void RpgMVAdapter::extractEventParameters(const nlohmann::json& list, const std:
                     if (params[pi].is_string()) {
                         std::string choice = params[pi].get<std::string>();
                         if (!choice.empty()) {
-                            out.push_back({source + "/cmd" + std::to_string(cmdIdx) + "/choice" + std::to_string(pi),
+                            out.push_back({source + "/ev" + std::to_string(eventId) + "/p" + std::to_string(pageIdx) + "/cmd" + std::to_string(cmdIdx) + "/choice" + std::to_string(pi),
                                 source, context + " - Choice #" + std::to_string(pi), "choice", choice, ""});
                         }
                     }

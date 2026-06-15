@@ -19,6 +19,6 @@ private:
     void extractFromSystemFile(const std::string& filePath, const std::string& source,
                                std::vector<TranslationEntry>& out);
     void extractEventParameters(const nlohmann::json& list, const std::string& source,
-                                const std::string& context,
+                                const std::string& context, int eventId, int pageIdx,
                                 std::vector<TranslationEntry>& out);
 };
