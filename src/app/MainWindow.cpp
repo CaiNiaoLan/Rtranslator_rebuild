@@ -19,6 +19,7 @@ MainWindow::MainWindow(QQmlApplicationEngine* engine, QObject* parent)
         m_connected = false; m_statusText = "Connection lost";
         emit statusTextChanged(); emit connectionChanged();
     });
+    m_gameManager->setAdapter(m_transEngine->adapter());
     m_cheatController->setSendHandler([this](const QString& json) {
         if (m_gameManager->wsServer()) m_gameManager->wsServer()->sendMessage(json);
     });

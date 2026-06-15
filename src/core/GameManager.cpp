@@ -7,7 +7,8 @@
 
 GameManager::GameManager(QObject* parent)
     : QObject(parent), m_process(new QProcess(this)), m_cdpClient(new CdpClient(this)),
-      m_wsServer(new WebSocketServer(this)), m_cdpPort(9222), m_running(false), m_hookInjected(false)
+      m_wsServer(new WebSocketServer(this)), m_cdpPort(9222), m_running(false), m_hookInjected(false),
+      m_adapter(nullptr)
 {
     connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &GameManager::onGameProcessFinished);
     connect(m_cdpClient, &CdpClient::connected, this, &GameManager::onCdpConnected);
@@ -25,6 +26,8 @@ quint16 GameManager::cdpPort() const { return m_cdpPort; }
 
 void GameManager::setTranslationMap(const std::unordered_map<std::string, std::string>& map) { m_translationMap = map; }
 
+void GameManager::setAdapter(IGameAdapter* adapter) { m_adapter = adapter; }
+
 bool GameManager::findAvailablePort() {
     for (int attempt = 0; attempt < 5; attempt++) {
         QTcpServer test;
@@ -39,7 +42,8 @@ void GameManager::launch() {
     if (!m_wsServer->start(0)) { emit injectionFailed("Failed to start WebSocket server"); return; }
     if (!findAvailablePort()) { emit injectionFailed("No available CDP port"); return; }
     QStringList args;
-    args << QString("--remote-debugging-port=%1").arg(m_cdpPort);
+    QString flag = m_adapter ? QString::fromStdString(m_adapter->debugPortFlag()) : "--remote-debugging-port=";
+    args << QString("%1%2").arg(flag).arg(m_cdpPort);
     QFileInfo exeInfo(m_gamePath);
     m_process->setWorkingDirectory(exeInfo.absolutePath());
     m_process->start(m_gamePath, args);

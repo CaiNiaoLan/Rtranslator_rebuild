@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "bridge/CdpClient.h"
 #include "bridge/WebSocketServer.h"
+#include "adapter/IGameAdapter.h"
 
 class GameManager : public QObject {
     Q_OBJECT
@@ -20,6 +21,7 @@ public:
     WebSocketServer* wsServer() const;
     quint16 cdpPort() const;
     void setTranslationMap(const std::unordered_map<std::string, std::string>& map);
+    void setAdapter(IGameAdapter* adapter);
 signals:
     void gameStarted();
     void gameStopped();
@@ -46,4 +48,5 @@ private:
     bool m_running;
     bool m_hookInjected;
     std::unordered_map<std::string, std::string> m_translationMap;
+    IGameAdapter* m_adapter;
 };
