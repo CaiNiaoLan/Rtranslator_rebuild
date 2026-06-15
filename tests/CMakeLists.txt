@@ -1,4 +1,14 @@
-add_executable(rtranslator_tests test_main.cpp test_protocol.cpp test_json_helper.cpp ${CMAKE_SOURCE_DIR}/src/bridge/Protocol.cpp ${CMAKE_SOURCE_DIR}/src/util/JsonHelper.cpp)
+add_executable(rtranslator_tests
+    test_main.cpp
+    test_protocol.cpp
+    ../src/bridge/Protocol.cpp
+    test_json_helper.cpp
+    ../src/util/JsonHelper.cpp
+    test_rpgmv_adapter.cpp
+    ../src/adapter/RpgMVAdapter.cpp
+    test_translation_engine.cpp
+    ../src/core/TranslationEngine.cpp
+)
 target_include_directories(rtranslator_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_definitions(rtranslator_tests PRIVATE TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/test_data")
 target_link_libraries(rtranslator_tests PRIVATE
