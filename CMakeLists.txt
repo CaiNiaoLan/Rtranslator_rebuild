@@ -5,25 +5,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt5 5.15 REQUIRED COMPONENTS Core Quick WebSockets Network)
+find_package(Qt5 5.15 REQUIRED COMPONENTS Core Quick WebSockets Network Test)
 
 add_library(nlohmann_json INTERFACE)
-target_include_directories(nlohmann_json INTERFACE
-  "$ENV{CONDA_PREFIX}/lib/site-packages/nlohmann_json/include"
-)
+target_include_directories(nlohmann_json INTERFACE "${CMAKE_SOURCE_DIR}/third_party")
 add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
-
-include(FetchContent)
 option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
-  FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG v1.15.2
-    GIT_SHALLOW TRUE
-  )
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  FetchContent_MakeAvailable(googletest)
+  set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+  add_subdirectory(third_party/googletest)
   enable_testing()
   add_subdirectory(tests)
 endif()
