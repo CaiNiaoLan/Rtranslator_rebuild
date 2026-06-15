@@ -9,13 +9,22 @@ Rectangle {
         Text { text: "Translation"; color: "#89b4fa"; font.pixelSize: 14; font.bold: true }
         RowLayout {
             Button { text: "Extract Text"; onClicked: mainWindow.extractText() }
-            Button { text: "Load Translation JSON"; onClicked: {} }
+            TextField {
+                id: transPathField; Layout.fillWidth: true
+                placeholderText: "Translation JSON path..."
+                color: "#cdd6f4"; background: Rectangle { color: "#313244"; radius: 4 }
+            }
+            Button {
+                text: "Load"
+                onClicked: { if (transPathField.text !== "") mainWindow.loadTranslationFile(transPathField.text) }
+            }
         }
         Text { text: mainWindow.translationStats; color: "#a6adc8"; font.pixelSize: 11 }
         Rectangle { Layout.fillWidth: true; height: 1; color: "#313244" }
         TextField {
             id: searchField; Layout.fillWidth: true; placeholderText: "Search strings..."
             color: "#cdd6f4"; background: Rectangle { color: "#313244"; radius: 4 }
+            onTextChanged: applyFilter()
         }
         ListView {
             id: entryList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true
@@ -31,8 +40,25 @@ Rectangle {
             }
         }
     }
+    property var allEntries: []
+
     Connections {
         target: mainWindow
-        function onExtractionComplete(entries) { entryModel.clear(); for (var i = 0; i < entries.length; i++) entryModel.append(entries[i]) }
+        function onExtractionComplete(entries) {
+            allEntries = entries
+            applyFilter()
+        }
+    }
+
+    function applyFilter() {
+        var filter = searchField.text.toLowerCase()
+        entryModel.clear()
+        for (var i = 0; i < allEntries.length; i++) {
+            var e = allEntries[i]
+            if (filter === "" || (e.original && e.original.toLowerCase().indexOf(filter) >= 0)
+                || (e.translation && e.translation.toLowerCase().indexOf(filter) >= 0)) {
+                entryModel.append(e)
+            }
+        }
     }
 }
