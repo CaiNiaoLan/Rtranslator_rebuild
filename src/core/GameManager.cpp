@@ -60,8 +60,12 @@ void GameManager::launch() {
 
 void GameManager::detach() {
     if (m_process && m_running) {
-        m_process->closeWriteChannel();
-        m_running = false; m_hookInjected = false;
+        m_process->terminate();
+        if (!m_process->waitForFinished(3000)) {
+            m_process->kill();
+        }
+        m_running = false;
+        m_hookInjected = false;
         emit gameStopped();
     }
 }
