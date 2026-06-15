@@ -57,7 +57,7 @@
   var tries = 0;
   function waitForReady() {
     tries++;
-    if (window.Window_Base || tries > 50) start();
+    if (window.Window_Base || tries > 150) start();
     else setTimeout(waitForReady, 200);
   }
   waitForReady();
