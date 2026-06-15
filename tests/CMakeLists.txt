@@ -19,7 +19,7 @@ add_executable(rtranslator_tests
 target_include_directories(rtranslator_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_definitions(rtranslator_tests PRIVATE TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/test_data")
 target_link_libraries(rtranslator_tests PRIVATE
-  GTest::gtest_main
+  GTest::gtest
   nlohmann_json::nlohmann_json
   Qt5::Core Qt5::WebSockets Qt5::Network Qt5::Test
 )
