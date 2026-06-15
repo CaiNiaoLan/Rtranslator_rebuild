@@ -47,10 +47,15 @@ void GameManager::launch() {
     QFileInfo exeInfo(m_gamePath);
     m_process->setWorkingDirectory(exeInfo.absolutePath());
     m_process->start(m_gamePath, args);
-    if (!m_process->waitForStarted(5000)) { emit injectionFailed("Failed to start game process"); return; }
-    m_running = true;
-    emit gameStarted();
-    QTimer::singleShot(1000, this, [this]() { m_cdpClient->connectToDebugger("127.0.0.1", m_cdpPort); });
+    connect(m_process, &QProcess::started, this, [this]() {
+        m_running = true;
+        emit gameStarted();
+        QTimer::singleShot(1000, this, [this]() { m_cdpClient->connectToDebugger("127.0.0.1", m_cdpPort); });
+    });
+    connect(m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError err) {
+        Q_UNUSED(err);
+        emit injectionFailed("Failed to start game process");
+    });
 }
 
 void GameManager::detach() {
