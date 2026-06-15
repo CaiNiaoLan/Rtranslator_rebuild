@@ -22,8 +22,13 @@ void CheatController::handleMessage(const QString& message) {
     QJsonObject obj = doc.object();
     QString type = obj.value("type").toString();
     if (type == "state") {
-        emit stateUpdated(obj.value("path").toString(),
-            QJsonDocument(obj.value("value").toObject()).toJson(QJsonDocument::Compact));
+        QJsonValue val = obj.value("value");
+        QString valStr;
+        if (val.isString()) valStr = val.toString();
+        else if (val.isDouble()) valStr = QString::number(val.toDouble());
+        else if (val.isBool()) valStr = val.toBool() ? "true" : "false";
+        else valStr = QJsonDocument(QJsonObject{{"v", val}}).toJson(QJsonDocument::Compact);
+        emit stateUpdated(obj.value("path").toString(), valStr);
     } else if (type == "error") {
         emit operationFailed(obj.value("reason").toString());
     } else if (type == "ack") {
