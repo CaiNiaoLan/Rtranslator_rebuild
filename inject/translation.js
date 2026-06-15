@@ -15,6 +15,7 @@
   window.__rtranslator_translate = translate;
 
   window.__rtranslator_installHooks = function() {
+    if (window.__rtranslator_hooksInstalled) return;
     if (!window.Window_Base) { setTimeout(window.__rtranslator_installHooks, 100); return; }
 
     // Primary hook: Window_Base.prototype.drawText catches ALL text rendering
@@ -35,5 +36,7 @@
 
     // Choice text: Window_ChoiceList.drawItem processes choices before drawText
     // Window_Command derivatives use drawText internally, so the drawText hook covers them
+
+    window.__rtranslator_hooksInstalled = true;
   };
 })();
