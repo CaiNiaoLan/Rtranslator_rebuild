@@ -71,10 +71,10 @@ void GameManager::onWsClientConnected() { m_hookInjected = true; sendInitMessage
 void GameManager::onWsDisconnected() { emit connectionLost(); }
 
 void GameManager::injectHookScript() {
-    injectSupportScript("ws-client.js", loadTextFile("inject/ws-client.js"));
-    injectSupportScript("state-reader.js", loadTextFile("inject/state-reader.js"));
-    injectSupportScript("translation.js", loadTextFile("inject/translation.js"));
-    QString hook = loadTextFile("inject/hook.js");
+    injectSupportScript("ws-client.js", loadTextFile(":/inject/ws-client.js"));
+    injectSupportScript("state-reader.js", loadTextFile(":/inject/state-reader.js"));
+    injectSupportScript("translation.js", loadTextFile(":/inject/translation.js"));
+    QString hook = loadTextFile(":/inject/hook.js");
     hook.replace("__RTRANSLATOR_WS_PORT__", QString::number(m_wsServer->port()));
     m_cdpClient->injectScript(hook);
 }
