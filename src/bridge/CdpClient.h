@@ -18,6 +18,7 @@ signals:
     void connected();
     void disconnected();
     void injectionComplete();
+    void injectionFailed(const QString& error);
 private slots:
     void onHttpResponse(QNetworkReply* reply);
     void onWsConnected();
@@ -32,5 +33,6 @@ private:
     QString m_host;
     quint16 m_port;
     int m_cmdId;
+    int m_injectCmdId;
     DisconnectHandler m_disconnectHandler;
 };
