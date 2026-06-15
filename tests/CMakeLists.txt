@@ -14,6 +14,7 @@ add_executable(rtranslator_tests
     ../src/bridge/CdpClient.cpp
     test_cheat_controller.cpp
     ../src/core/CheatController.cpp
+    test_integration.cpp
 )
 target_include_directories(rtranslator_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_definitions(rtranslator_tests PRIVATE TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/tests/test_data")
