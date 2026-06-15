@@ -10,6 +10,9 @@
     if (segment === 'switches') return resolveSwitchPath(parts.slice(1));
     if (segment === 'variables') return resolveVariablePath(parts.slice(1));
     if (segment === 'items') return resolveItemPath(parts.slice(1));
+    if (segment === 'weapons') return resolveWeaponPath(parts.slice(1));
+    if (segment === 'armors') return resolveArmorPath(parts.slice(1));
+    if (segment === 'troop') return resolveTroopPath(parts.slice(1));
     return null;
   }
 
@@ -49,15 +52,15 @@
         if (prop === 'luk') return actor.luk;
         return null;
       },
-      set: function(val) {
-        var actor = $gameActors.actor(actorId);
-        if (!actor) return false;
-        if (prop === 'hp') { actor._hp = Math.min(val, actor.mhp); return true; }
-        if (prop === 'mp') { actor._mp = Math.min(val, actor.mmp); return true; }
-        if (prop === 'level') { actor._level = val; return true; }
-        if (prop === 'exp') { actor._exp = {1: val}; return true; }
-        return false;
-      }
+        set: function(val) {
+          var actor = $gameActors.actor(actorId);
+          if (!actor) return false;
+          if (prop === 'hp') { actor._hp = Math.max(0, Math.min(val, actor.mhp)); return true; }
+          if (prop === 'mp') { actor._mp = Math.max(0, Math.min(val, actor.mmp)); return true; }
+          if (prop === 'level') { actor._level = val; return true; }
+          if (prop === 'exp') { actor._exp = {1: val}; return true; }
+          return false;
+        }
     };
   }
 
@@ -91,6 +94,50 @@
         else if (diff < 0) $gameParty.loseItem($dataItems[id], -diff);
         return true;
       }
+    };
+  }
+
+  function resolveWeaponPath(parts) {
+    if (!window.$gameParty || !window.$dataWeapons) return null;
+    var id = parseInt(parts[0], 10);
+    return {
+      get: function() { return $gameParty.numItems($dataWeapons[id]); },
+      set: function(val) {
+        var cur = $gameParty.numItems($dataWeapons[id]);
+        var diff = val - cur;
+        if (diff > 0) $gameParty.gainItem($dataWeapons[id], diff);
+        else if (diff < 0) $gameParty.loseItem($dataWeapons[id], -diff);
+        return true;
+      }
+    };
+  }
+
+  function resolveArmorPath(parts) {
+    if (!window.$gameParty || !window.$dataArmors) return null;
+    var id = parseInt(parts[0], 10);
+    return {
+      get: function() { return $gameParty.numItems($dataArmors[id]); },
+      set: function(val) {
+        var cur = $gameParty.numItems($dataArmors[id]);
+        var diff = val - cur;
+        if (diff > 0) $gameParty.gainItem($dataArmors[id], diff);
+        else if (diff < 0) $gameParty.loseItem($dataArmors[id], -diff);
+        return true;
+      }
+    };
+  }
+
+  function resolveTroopPath(parts) {
+    if (!window.$gameTroop) return null;
+    return {
+      get: function() {
+        if (parts[0] === 'alive') return $gameTroop.aliveMembers().length;
+        if (parts[0] === 'dead') return $gameTroop.deadMembers().length;
+        if (parts[0] === 'turn') return $gameTroop.turnCount();
+        if (parts[0] === 'id') return $gameTroop._troopId;
+        return null;
+      },
+      set: function(val) { return false; }
     };
   }
 
