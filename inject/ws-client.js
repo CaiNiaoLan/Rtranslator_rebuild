@@ -4,13 +4,19 @@
   window.__rtranslator_callbacks = {};
 
   function connect(port) {
-    var ws = new WebSocket('ws://127.0.0.1:' + port);
-    ws.onopen = function() {};
-    ws.onmessage = function(event) {
-      try { var msg = JSON.parse(event.data); handleMessage(msg); } catch(e) {}
-    };
-    ws.onclose = function() { window.__rtranslator_ws = null; };
-    window.__rtranslator_ws = ws;
+    function tryConnect() {
+      var ws = new WebSocket('ws://127.0.0.1:' + port);
+      ws.onopen = function() { window.__rtranslator_ws = ws; };
+      ws.onmessage = function(event) {
+        try { var msg = JSON.parse(event.data); handleMessage(msg); } catch(e) {}
+      };
+      ws.onclose = function() {
+        window.__rtranslator_ws = null;
+        setTimeout(tryConnect, 2000);
+      };
+      ws.onerror = function() {};
+    }
+    tryConnect();
   }
 
   function send(data) {
