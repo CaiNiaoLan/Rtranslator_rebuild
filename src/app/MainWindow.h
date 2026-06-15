@@ -51,4 +51,5 @@ private:
     QString m_statusText;
     QString m_transStats;
     bool m_connected;
+    std::vector<TranslationEntry> m_entries;
 };

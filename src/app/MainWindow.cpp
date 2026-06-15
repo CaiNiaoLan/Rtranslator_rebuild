@@ -60,6 +60,27 @@ void MainWindow::loadTranslationFile(const QString& filePath) {
         m_transStats = QString("%1 translations loaded").arg(count);
         emit translationStatsChanged(); emit translationLoaded(count);
         m_gameManager->setTranslationMap(m_transEngine->translationMap());
+        
+        // Sync with panel entries
+        m_entries = m_transEngine->extractFromGame(QFileInfo(m_gamePath).absolutePath().toStdString());
+        const auto& map = m_transEngine->translationMap();
+        for (auto& entry : m_entries) {
+            auto it = map.find(entry.original);
+            if (it != map.end()) entry.translation = it->second;
+        }
+        // Re-emit to update panel
+        QVariantList list;
+        for (const auto& e : m_entries) {
+            QVariantMap m;
+            m["id"] = QString::fromStdString(e.id);
+            m["source"] = QString::fromStdString(e.source);
+            m["context"] = QString::fromStdString(e.context);
+            m["original"] = QString::fromStdString(e.original);
+            m["translation"] = QString::fromStdString(e.translation);
+            list.append(m);
+        }
+        emit extractionComplete(list);
+        
         if (m_gameManager->wsServer()) {
             Protocol::ReloadTransCommand cmd; cmd.translationMap = m_transEngine->translationMap();
             m_gameManager->wsServer()->sendMessage(QString::fromStdString(cmd.toJson().dump()));
