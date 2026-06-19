@@ -4,14 +4,15 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <memory>
+#include <QString>
 #include "adapter/IGameAdapter.h"
 
 class TranslationEngine {
 public:
     explicit TranslationEngine(std::unique_ptr<IGameAdapter> adapter);
-    bool detectGame(const std::string& gameDir) const;
-    std::vector<TranslationEntry> extractFromGame(const std::string& gameDir);
-    bool loadTranslation(const std::string& filePath);
+    bool detectGame(const QString& gameDir) const;
+    std::vector<TranslationEntry> extractFromGame(const QString& gameDir);
+    bool loadTranslation(const QString& filePath, QString* errorOut = nullptr);
     std::string translate(const std::string& original) const;
     const std::unordered_map<std::string, std::string>& translationMap() const;
     IGameAdapter* adapter() const;

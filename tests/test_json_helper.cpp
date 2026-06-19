@@ -1,21 +1,22 @@
 #include <gtest/gtest.h>
 #include "util/JsonHelper.h"
+#include <QString>
 
 using json = nlohmann::json;
 
 TEST(JsonHelper, loadJsonFile_reads_valid_file) {
-    auto opt = JsonHelper::loadJsonFile(TEST_DATA_DIR "/valid.json");
+    auto opt = JsonHelper::loadJsonFile(QString::fromUtf8(TEST_DATA_DIR "/valid.json"));
     ASSERT_TRUE(opt.has_value());
     EXPECT_EQ((*opt)["key"], "value");
 }
 
 TEST(JsonHelper, loadJsonFile_returns_nullopt_for_missing_file) {
-    auto opt = JsonHelper::loadJsonFile(TEST_DATA_DIR "/does_not_exist.json");
+    auto opt = JsonHelper::loadJsonFile(QString::fromUtf8(TEST_DATA_DIR "/does_not_exist.json"));
     EXPECT_FALSE(opt.has_value());
 }
 
 TEST(JsonHelper, loadJsonFile_returns_nullopt_for_invalid_json) {
-    auto opt = JsonHelper::loadJsonFile(TEST_DATA_DIR "/invalid.json");
+    auto opt = JsonHelper::loadJsonFile(QString::fromUtf8(TEST_DATA_DIR "/invalid.json"));
     EXPECT_FALSE(opt.has_value());
 }
 

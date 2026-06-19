@@ -4,16 +4,20 @@
 #include <QFileInfo>
 #include <cstdio>
 
-bool RpgMVAdapter::detect(const std::string& gameDir) {
-    QDir dir(QString::fromStdString(gameDir));
-    return dir.exists("www/data/System.json");
+bool RpgMVAdapter::detect(const QString& gameDir) {
+    QDir dir(gameDir);
+    return dir.exists("www/data/System.json") || dir.exists("data/System.json");
 }
 
-std::vector<TranslationEntry> RpgMVAdapter::extractText(const std::string& gameDir) {
+std::vector<TranslationEntry> RpgMVAdapter::extractText(const QString& gameDir) {
     std::vector<TranslationEntry> entries;
-    std::string dataPath = gameDir + "/www/data";
+    // Try www/data first, then data as fallback
+    QString dataPath = gameDir + "/www/data";
+    if (!QFileInfo::exists(dataPath + "/System.json")) {
+        dataPath = gameDir + "/data";
+    }
 
-    struct FileSpec { std::string name; std::string prefix; std::vector<std::string> fields; };
+    struct FileSpec { QString name; QString prefix; std::vector<std::string> fields; };
     std::vector<FileSpec> specs = {
         {"Actors.json",   "Actor",   {"name", "nickname", "profile", "note"}},
         {"Classes.json",  "Class",   {"name", "note"}},
@@ -29,18 +33,18 @@ std::vector<TranslationEntry> RpgMVAdapter::extractText(const std::string& gameD
     };
 
     for (const auto& spec : specs) {
-        std::string filePath = dataPath + "/" + spec.name;
-        if (!QFileInfo::exists(QString::fromStdString(filePath))) continue;
+        QString filePath = dataPath + "/" + spec.name;
+        if (!QFileInfo::exists(filePath)) continue;
         extractFromFile(filePath, spec.name, spec.prefix, spec.fields, entries);
     }
 
-    std::string systemPath = dataPath + "/System.json";
-    if (QFileInfo::exists(QString::fromStdString(systemPath))) {
+    QString systemPath = dataPath + "/System.json";
+    if (QFileInfo::exists(systemPath)) {
         extractFromSystemFile(systemPath, "System.json", entries);
     }
 
-    std::string commonPath = dataPath + "/CommonEvents.json";
-    if (QFileInfo::exists(QString::fromStdString(commonPath))) {
+    QString commonPath = dataPath + "/CommonEvents.json";
+    if (QFileInfo::exists(commonPath)) {
         auto opt = JsonHelper::loadJsonFile(commonPath);
         if (opt.has_value() && opt->is_array()) {
             int idx = 0;
@@ -65,32 +69,33 @@ std::vector<TranslationEntry> RpgMVAdapter::extractText(const std::string& gameD
     for (int i = 1; i <= 999; i++) {
         char buf[64];
         snprintf(buf, sizeof(buf), "/Map%03d.json", i);
-        std::string mapPath = dataPath + buf;
-        if (QFileInfo::exists(QString::fromStdString(mapPath))) {
-            extractFromMapFile(mapPath, std::string("Map") + buf, entries);
+        QString mapPath = dataPath + QString::fromUtf8(buf);
+        if (QFileInfo::exists(mapPath)) {
+            extractFromMapFile(mapPath, QString::fromUtf8("Map") + QString::fromUtf8(buf), entries);
         }
     }
 
     return entries;
 }
 
-void RpgMVAdapter::extractFromFile(const std::string& filePath, const std::string& source,
-                                    const std::string& contextPrefix,
+void RpgMVAdapter::extractFromFile(const QString& filePath, const QString& source,
+                                    const QString& contextPrefix,
                                     const std::vector<std::string>& fields,
                                     std::vector<TranslationEntry>& out) {
     auto opt = JsonHelper::loadJsonFile(filePath);
     if (!opt.has_value() || !opt->is_array()) return;
 
     int idx = 0;
+    std::string sourceStr = source.toStdString();
     for (const auto& item : *opt) {
         if (item.is_null()) { idx++; continue; }
         for (const auto& field : fields) {
             auto val = JsonHelper::getString(item, field);
             if (val.has_value() && !val->empty()) {
                 out.push_back({
-                    source + "/" + std::to_string(idx) + "/" + field,
-                    source,
-                    contextPrefix + " #" + std::to_string(idx) + " - " + field,
+                    sourceStr + "/" + std::to_string(idx) + "/" + field,
+                    sourceStr,
+                    contextPrefix.toStdString() + " #" + std::to_string(idx) + " - " + field,
                     field,
                     *val,
                     ""
@@ -101,15 +106,17 @@ void RpgMVAdapter::extractFromFile(const std::string& filePath, const std::strin
     }
 }
 
-void RpgMVAdapter::extractFromMapFile(const std::string& filePath, const std::string& source,
+void RpgMVAdapter::extractFromMapFile(const QString& filePath, const QString& source,
                                        std::vector<TranslationEntry>& out) {
     auto opt = JsonHelper::loadJsonFile(filePath);
     if (!opt.has_value()) return;
 
+    std::string sourceStr = source.toStdString();
+
     if (opt->contains("displayName")) {
         auto name = JsonHelper::getString(*opt, "displayName");
         if (name.has_value() && !name->empty()) {
-            out.push_back({source + "/displayName", source, "Map Display Name", "displayName", *name, ""});
+            out.push_back({sourceStr + "/displayName", sourceStr, "Map Display Name", "displayName", *name, ""});
         }
     }
 
@@ -120,15 +127,15 @@ void RpgMVAdapter::extractFromMapFile(const std::string& filePath, const std::st
             int eventId = event.value("id", 0);
 
             if (!eventName.empty()) {
-                out.push_back({source + "/event" + std::to_string(eventId) + "/name",
-                    source, "Event #" + std::to_string(eventId) + " Name", "name", eventName, ""});
+                out.push_back({sourceStr + "/event" + std::to_string(eventId) + "/name",
+                    sourceStr, "Event #" + std::to_string(eventId) + " Name", "name", eventName, ""});
             }
 
             if (event.contains("pages")) {
                 for (const auto& page : event["pages"]) {
                     if (page.is_null() || !page.contains("list")) continue;
                     std::string ctx = "Event #" + std::to_string(eventId) + " Page " + std::to_string(page.value("pageIndex", 0));
-                    extractEventParameters(page["list"], source, ctx, eventId, page.value("pageIndex", 0), out);
+                    extractEventParameters(page["list"], sourceStr, ctx, eventId, page.value("pageIndex", 0), out);
                 }
             }
         }
@@ -173,17 +180,18 @@ void RpgMVAdapter::extractEventParameters(const nlohmann::json& list, const std:
     }
 }
 
-void RpgMVAdapter::extractFromSystemFile(const std::string& filePath, const std::string& source,
+void RpgMVAdapter::extractFromSystemFile(const QString& filePath, const QString& source,
                                           std::vector<TranslationEntry>& out) {
     auto opt = JsonHelper::loadJsonFile(filePath);
     if (!opt.has_value()) return;
 
     nlohmann::json& sys = *opt;
+    std::string sourceStr = source.toStdString();
 
     auto pushSysField = [&](const std::string& field) {
         auto val = JsonHelper::getString(sys, field);
         if (val.has_value() && !val->empty()) {
-            out.push_back({source + "/" + field, source, "System - " + field, field, *val, ""});
+            out.push_back({sourceStr + "/" + field, sourceStr, "System - " + field, field, *val, ""});
         }
     };
     pushSysField("gameTitle");
@@ -195,8 +203,8 @@ void RpgMVAdapter::extractFromSystemFile(const std::string& filePath, const std:
             if (elem.is_string()) {
                 std::string s = elem.get<std::string>();
                 if (!s.empty()) {
-                    out.push_back({source + "/elements/" + std::to_string(i),
-                        source, "System - Element #" + std::to_string(i), "element", s, ""});
+                    out.push_back({sourceStr + "/elements/" + std::to_string(i),
+                        sourceStr, "System - Element #" + std::to_string(i), "element", s, ""});
                 }
             }
             i++;
@@ -208,16 +216,16 @@ void RpgMVAdapter::extractFromSystemFile(const std::string& filePath, const std:
             if (termVal.is_string()) {
                 std::string s = termVal.get<std::string>();
                 if (!s.empty()) {
-                    out.push_back({source + "/terms/" + termKey,
-                        source, "System - Term: " + termKey, "term", s, ""});
+                    out.push_back({sourceStr + "/terms/" + termKey,
+                        sourceStr, "System - Term: " + termKey, "term", s, ""});
                 }
             } else if (termVal.is_array()) {
                 for (size_t i = 0; i < termVal.size(); i++) {
                     if (termVal[i].is_string()) {
                         std::string s = termVal[i].get<std::string>();
                         if (!s.empty()) {
-                            out.push_back({source + "/terms/" + termKey + "/" + std::to_string(i),
-                                source, "System - Term: " + termKey + "[" + std::to_string(i) + "]", "term", s, ""});
+                            out.push_back({sourceStr + "/terms/" + termKey + "/" + std::to_string(i),
+                                sourceStr, "System - Term: " + termKey + "[" + std::to_string(i) + "]", "term", s, ""});
                         }
                     }
                 }

@@ -4,8 +4,8 @@
 
 namespace JsonHelper {
 
-std::optional<json> loadJsonFile(const std::string& filepath) {
-    QFile file(QString::fromStdString(filepath));
+std::optional<json> loadJsonFile(const QString& filepath) {
+    QFile file(filepath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return std::nullopt;
     QTextStream stream(&file);

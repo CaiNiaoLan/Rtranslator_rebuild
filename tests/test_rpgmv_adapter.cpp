@@ -29,13 +29,13 @@ protected:
 
 TEST_F(RpgMVAdapterTest, detect_returns_false_when_no_system_json) {
     RpgMVAdapter adapter;
-    EXPECT_FALSE(adapter.detect("tests/test_data/mv_game"));
+    EXPECT_FALSE(adapter.detect(QString::fromStdString("tests/test_data/mv_game")));
 }
 
 TEST_F(RpgMVAdapterTest, detect_returns_true_when_system_json_exists) {
     writeJson("System.json", "{}");
     RpgMVAdapter adapter;
-    EXPECT_TRUE(adapter.detect("tests/test_data/mv_game"));
+    EXPECT_TRUE(adapter.detect(QString::fromStdString("tests/test_data/mv_game")));
 }
 
 TEST_F(RpgMVAdapterTest, extractText_parses_actors) {
@@ -43,7 +43,7 @@ TEST_F(RpgMVAdapterTest, extractText_parses_actors) {
     writeJson("Actors.json", R"([{"id":1,"name":"Hero","nickname":"H","profile":"Brave","note":"Tag"}])");
 
     RpgMVAdapter adapter;
-    auto entries = adapter.extractText("tests/test_data/mv_game");
+    auto entries = adapter.extractText(QString::fromStdString("tests/test_data/mv_game"));
     EXPECT_GE(entries.size(), 4);
 }
 
@@ -52,7 +52,7 @@ TEST_F(RpgMVAdapterTest, extractText_parses_items) {
     writeJson("Items.json", R"([{"id":1,"name":"Potion","description":"Heals 50HP","note":"Common"}])");
 
     RpgMVAdapter adapter;
-    auto entries = adapter.extractText("tests/test_data/mv_game");
+    auto entries = adapter.extractText(QString::fromStdString("tests/test_data/mv_game"));
     EXPECT_GE(entries.size(), 3);
 }
 
@@ -64,6 +64,6 @@ TEST_F(RpgMVAdapterTest, extractText_parses_system_terms) {
     })");
 
     RpgMVAdapter adapter;
-    auto entries = adapter.extractText("tests/test_data/mv_game");
+    auto entries = adapter.extractText(QString::fromStdString("tests/test_data/mv_game"));
     EXPECT_GE(entries.size(), 5);
 }

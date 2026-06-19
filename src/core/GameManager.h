@@ -4,7 +4,6 @@
 #include <QTimer>
 #include <memory>
 #include <unordered_map>
-#include "bridge/CdpClient.h"
 #include "bridge/WebSocketServer.h"
 #include "adapter/IGameAdapter.h"
 
@@ -17,36 +16,38 @@ public:
     void launch();
     void detach();
     bool isRunning() const;
-    CdpClient* cdpClient() const;
     WebSocketServer* wsServer() const;
-    quint16 cdpPort() const;
     void setTranslationMap(const std::unordered_map<std::string, std::string>& map);
+    void sendTranslation();
     void setAdapter(IGameAdapter* adapter);
+
 signals:
     void gameStarted();
     void gameStopped();
     void injectionSucceeded();
     void injectionFailed(const QString& reason);
     void connectionLost();
+
 private slots:
-    void onCdpConnected();
-    void onCdpDisconnected();
     void onWsClientConnected();
     void onWsDisconnected();
     void onGameProcessFinished(int exitCode, QProcess::ExitStatus status);
+
 private:
-    void injectHookScript();
-    void injectSupportScript(const QString& name, const QString& script);
-    void sendInitMessage();
+    bool prepareInjection();
+    void restoreInjection();
+    QString buildInjectedHtml(const QString& original);
     QString loadTextFile(const QString& path) const;
-    bool findAvailablePort();
+    void sendInitMessage();
+
     QProcess* m_process;
-    CdpClient* m_cdpClient;
     WebSocketServer* m_wsServer;
     QString m_gamePath;
-    quint16 m_cdpPort;
+    QString m_gameDir;
     bool m_running;
     bool m_hookInjected;
     std::unordered_map<std::string, std::string> m_translationMap;
     IGameAdapter* m_adapter;
+    QString m_htmlBackup;
+    QString m_htmlPath;
 };

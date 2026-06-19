@@ -3,13 +3,14 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <QString>
 #include <nlohmann/json.hpp>
 
 namespace JsonHelper {
 
 using json = nlohmann::json;
 
-std::optional<json> loadJsonFile(const std::string& filepath);
+std::optional<json> loadJsonFile(const QString& filepath);
 std::optional<std::string> getString(const json& obj, const std::string& key);
 void collectStrings(const json& arr, const std::string& key, std::vector<std::string>& out);
 void collectStringsToSet(const json& arr, const std::string& key, std::unordered_set<std::string>& out);

@@ -16,11 +16,18 @@ void CheatController::batchWrite(const std::vector<std::pair<std::string, nlohma
 void CheatController::battleVictory() { sendCommand(Protocol::BattleVictoryCommand{}.toJson().dump()); }
 void CheatController::addItem(int id, const std::string& type, int count) { sendCommand(Protocol::AddItemCommand{id, type, count}.toJson().dump()); }
 
+void CheatController::sendCheat(const QString& action, const nlohmann::json& params) {
+    nlohmann::json cmd = {{"type", "cheat"}, {"action", action.toStdString()}};
+    for (auto& [k, v] : params.items()) cmd[k] = v;
+    sendCommand(cmd.dump());
+}
+
 void CheatController::handleMessage(const QString& message) {
     QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8());
     if (!doc.isObject()) return;
     QJsonObject obj = doc.object();
     QString type = obj.value("type").toString();
+
     if (type == "state") {
         QJsonValue val = obj.value("value");
         QString valStr;
@@ -35,5 +42,8 @@ void CheatController::handleMessage(const QString& message) {
         bool success = obj.value("success").toBool();
         QString cmd = obj.value("cmd").toString();
         emit operationAcknowledged(cmd, success);
+    } else if (type == "notify") {
+        QString event = obj.value("event").toString();
+        emit notificationReceived(event, obj);
     }
 }

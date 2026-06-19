@@ -4,8 +4,9 @@ project(RTranslator VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
-find_package(Qt5 5.15 REQUIRED COMPONENTS Core Quick WebSockets Network Test)
+find_package(Qt5 5.15 REQUIRED COMPONENTS Core Quick WebSockets Network Widgets Test)
 
 add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json INTERFACE "${CMAKE_SOURCE_DIR}/third_party")
@@ -25,7 +26,7 @@ add_executable(RTranslator ${SRC_FILES} qml/qml.qrc)
 
 target_include_directories(RTranslator PRIVATE src)
 target_link_libraries(RTranslator PRIVATE
-  Qt5::Core Qt5::Quick Qt5::WebSockets Qt5::Network
+  Qt5::Core Qt5::Quick Qt5::WebSockets Qt5::Network Qt5::Widgets
   nlohmann_json::nlohmann_json
 )
 

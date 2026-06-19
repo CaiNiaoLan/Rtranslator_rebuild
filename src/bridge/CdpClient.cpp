@@ -27,6 +27,7 @@ void CdpClient::connectToDebugger(const QString& host, quint16 port) {
 }
 
 void CdpClient::onHttpResponse(QNetworkReply* reply) {
+    m_timeout->stop();
     reply->deleteLater();
     if (reply->error() != QNetworkReply::NoError) { emit disconnected(); return; }
     QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
@@ -35,7 +36,7 @@ void CdpClient::onHttpResponse(QNetworkReply* reply) {
         QJsonObject obj = page.toObject();
         if (obj.value("type").toString() == "page") {
             QString wsUrl = obj.value("webSocketDebuggerUrl").toString();
-            if (!wsUrl.isEmpty()) { m_timeout->stop(); connectToPage(wsUrl); return; }
+            if (!wsUrl.isEmpty()) { connectToPage(wsUrl); return; }
         }
     }
     emit disconnected();

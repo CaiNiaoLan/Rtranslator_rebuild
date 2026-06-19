@@ -5,8 +5,10 @@
     window.__rtranslator_connect(WS_PORT);
 
     window.__rtranslator_on('init', function(msg) {
+      window.__rtranslator_send({ type: 'notify', event: 'init_received', count: msg.map ? Object.keys(msg.map).length : 0 });
       if (msg.map) window.__rtranslator_initTrans(msg.map);
       window.__rtranslator_installHooks();
+      window.__rtranslator_send({ type: 'notify', event: 'hooks_installed' });
     });
 
     window.__rtranslator_on('read', function(msg) {
@@ -28,13 +30,27 @@
     });
 
     window.__rtranslator_on('battle_victory', function() {
-      if (window.$gameParty && window.$gameParty.inBattle && window.$gameParty.inBattle()) {
-        var members = window.$gameTroop ? window.$gameTroop.members() : [];
-        for (var i = 0; i < members.length; i++) members[i].setHp(0);
-        window.__rtranslator_send({ type: 'ack', cmd: 'battle_victory', success: true });
-      } else {
-        window.__rtranslator_send({ type: 'error', cmd: 'battle_victory', reason: 'not in battle' });
+      window.__rtranslator_cheat_forceWin();
+      window.__rtranslator_send({ type: 'ack', cmd: 'battle_victory', success: true });
+    });
+
+    window.__rtranslator_on('cheat', function(msg) {
+      var action = msg.action;
+      var ok = false;
+      switch (action) {
+        case 'recover_all': ok = window.__rtranslator_cheat_recoverAll(); break;
+        case 'max_gold': ok = window.__rtranslator_cheat_maxGold(); break;
+        case 'all_items': ok = window.__rtranslator_cheat_allItems(); break;
+        case 'god_mode': ok = window.__rtranslator_cheat_godMode(); break;
+        case 'force_escape': ok = window.__rtranslator_cheat_forceEscape(); break;
+        case 'walk_walls': ok = window.__rtranslator_cheat_walkThroughWalls(); break;
+        case 'level_up': ok = window.__rtranslator_cheat_levelUp(msg.levels || 1); break;
+        case 'get_lists':
+          var data = window.__rtranslator_getDataLists();
+          window.__rtranslator_send({ type: 'data_lists', data: data });
+          return;
       }
+      window.__rtranslator_send({ type: 'ack', cmd: 'cheat', action: action, success: ok });
     });
 
     window.__rtranslator_on('add_item', function(msg) {

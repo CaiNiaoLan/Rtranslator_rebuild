@@ -14,11 +14,13 @@ public:
     void batchWrite(const std::vector<std::pair<std::string, nlohmann::json>>& ops);
     void battleVictory();
     void addItem(int id, const std::string& type, int count);
+    void sendCheat(const QString& action, const nlohmann::json& params = nlohmann::json::object());
     void handleMessage(const QString& message);
 signals:
     void stateUpdated(const QString& path, const QString& value);
     void operationFailed(const QString& reason);
     void operationAcknowledged(const QString& cmd, bool success);
+    void notificationReceived(const QString& event, const QJsonObject& data);
 private:
     SendHandler m_sendHandler;
     void sendCommand(const std::string& json);

@@ -8,7 +8,7 @@
 
 TEST(Integration, translationMap_to_protocol_roundtrip) {
     auto engine = std::make_unique<TranslationEngine>(std::make_unique<RpgMVAdapter>());
-    ASSERT_TRUE(engine->loadTranslation(TEST_DATA_DIR "/sample_trans.json"));
+    ASSERT_TRUE(engine->loadTranslation(QString::fromUtf8(TEST_DATA_DIR "/sample_trans.json")));
     Protocol::InitCommand init;
     init.translationMap = engine->translationMap();
     auto json = init.toJson();
@@ -49,5 +49,5 @@ TEST(Integration, batch_write_serializes_multiple_ops) {
 
 TEST(Integration, translation_engine_detect_game) {
     auto engine = std::make_unique<TranslationEngine>(std::make_unique<RpgMVAdapter>());
-    EXPECT_FALSE(engine->detectGame("nonexistent/path"));
+    EXPECT_FALSE(engine->detectGame(QString::fromStdString("nonexistent/path")));
 }

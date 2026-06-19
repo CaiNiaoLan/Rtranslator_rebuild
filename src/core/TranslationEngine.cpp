@@ -1,10 +1,11 @@
 #include "core/TranslationEngine.h"
 #include "util/JsonHelper.h"
+#include <QDebug>
 
 TranslationEngine::TranslationEngine(std::unique_ptr<IGameAdapter> adapter)
     : m_adapter(std::move(adapter)) {}
 
-bool TranslationEngine::detectGame(const std::string& gameDir) const {
+bool TranslationEngine::detectGame(const QString& gameDir) const {
     return m_adapter->detect(gameDir);
 }
 
@@ -12,20 +13,39 @@ IGameAdapter* TranslationEngine::adapter() const {
     return m_adapter.get();
 }
 
-std::vector<TranslationEntry> TranslationEngine::extractFromGame(const std::string& gameDir) {
+std::vector<TranslationEntry> TranslationEngine::extractFromGame(const QString& gameDir) {
     m_entries = m_adapter->extractText(gameDir);
     return m_entries;
 }
 
-bool TranslationEngine::loadTranslation(const std::string& filePath) {
+bool TranslationEngine::loadTranslation(const QString& filePath, QString* errorOut) {
     auto opt = JsonHelper::loadJsonFile(filePath);
-    if (!opt.has_value()) return false;
+    if (!opt.has_value()) {
+        if (errorOut) *errorOut = "无法打开或解析 JSON 文件";
+        return false;
+    }
     auto& doc = *opt;
-    if (!doc.contains("strings") || !doc["strings"].is_object()) return false;
+    
+    nlohmann::json* stringsObj = nullptr;
+    if (doc.contains("strings") && doc["strings"].is_object()) {
+        // Format: {"strings": {"key": "value"}}
+        stringsObj = &doc["strings"];
+    } else if (doc.is_object()) {
+        // Format: {"key": "value"} — flat key-value pairs
+        stringsObj = &doc;
+    } else {
+        if (errorOut) *errorOut = "JSON 格式不正确（需为键值对对象）";
+        return false;
+    }
+    
     m_translationMap.clear();
-    for (auto& [key, value] : doc["strings"].items()) {
+    int skipped = 0;
+    for (auto& [key, value] : stringsObj->items()) {
+        if (key == "meta" || key == "strings") continue; // skip metadata keys
         if (value.is_string()) {
             m_translationMap[key] = value.get<std::string>();
+        } else {
+            skipped++;
         }
     }
     return true;
