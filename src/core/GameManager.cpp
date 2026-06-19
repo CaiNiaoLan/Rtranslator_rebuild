@@ -114,10 +114,20 @@ QString GameManager::buildInjectedHtml(const QString& original) {
         preload = "window.__RTRANSLATOR_PRELOAD_MAP__=" + jsonStr + ";\n";
     }
 
-    QString scriptBlock = "\n<!-- RTranslator Injection -->\n<script>\n" +
+    QString scriptBlock =
+        QString("\n<!-- RTranslator Injection -->\n<script>\n") +
+        QString("document.title='RTL:LOADED';\n") +
+        QString("window.__RTRANSLATOR_ERRLOG__=[];\n") +
         preload +
-        wsClient + "\n" + stateReader + "\n" + translation + "\n" + hook +
-        "\n</script>\n<!-- End RTranslator -->\n";
+        QString("try{") + wsClient + QString("}catch(e){window.__RTRANSLATOR_ERRLOG__.push('WS:'+e.message);}\n") +
+        QString("try{") + stateReader + QString("}catch(e){window.__RTRANSLATOR_ERRLOG__.push('STATE:'+e.message);}\n") +
+        QString("try{") + translation + QString("}catch(e){window.__RTRANSLATOR_ERRLOG__.push('TRANS:'+e.message);}\n") +
+        QString("try{") + hook + QString("}catch(e){window.__RTRANSLATOR_ERRLOG__.push('HOOK:'+e.message);}\n") +
+        QString("var ms=window.__RTRANSLATOR_PRELOAD_MAP__?Object.keys(window.__RTRANSLATOR_PRELOAD_MAP__).length:0;\n") +
+        QString("document.title='RTL:MAP'+ms;\n") +
+        QString("window.__RTRANSLATOR_ERRLOG__.push('DONE map='+ms);\n") +
+        QString("try{if(typeof require!=='undefined'){var fs=require('fs');fs.writeFileSync('rtranslator_err.log',window.__RTRANSLATOR_ERRLOG__.join('\\n'),'utf-8');}}catch(e){}\n") +
+        QString("\n</script>\n<!-- End RTranslator -->\n");
 
     // Insert before </body> or </html> or at the end
     if (original.contains("</body>")) {
