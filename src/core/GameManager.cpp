@@ -83,6 +83,15 @@ bool GameManager::prepareInjection() {
     stream << injected;
     file.close();
 
+    // Debug: also write injected HTML beside the original for inspection
+    QFile debugFile(m_htmlPath + ".rtranslator_injected.html");
+    if (debugFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        QTextStream ds(&debugFile);
+        ds.setCodec("UTF-8");
+        ds << injected;
+        debugFile.close();
+    }
+
     return true;
 }
 
