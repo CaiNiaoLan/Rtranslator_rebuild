@@ -10,4 +10,10 @@
         <file>EventTab.qml</file>
         <file>StatusTab.qml</file>
     </qresource>
+    <qresource prefix="/inject">
+        <file alias="ws-client.js">../inject/ws-client.js</file>
+        <file alias="state-reader.js">../inject/state-reader.js</file>
+        <file alias="translation.js">../inject/translation.js</file>
+        <file alias="hook.js">../inject/hook.js</file>
+    </qresource>
 </RCC>
