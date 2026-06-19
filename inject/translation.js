@@ -3,12 +3,19 @@
   window.__rtranslator_trans = {};
 
   var translationMap = window.__RTRANSLATOR_PRELOAD_MAP__ || {};
+  var preloadCount = Object.keys(translationMap).length;
+  console.log('[RTranslator] preload map size:', preloadCount);
   delete window.__RTRANSLATOR_PRELOAD_MAP__;
 
   // If preloaded, initialize immediately (before game data loads and windows render)
-  if (Object.keys(translationMap).length > 0) {
+  if (preloadCount > 0) {
+    console.log('[RTranslator] preload: translating TextManager');
     translateTextManager();
+    console.log('[RTranslator] preload: installing window hooks');
     installWindowHooks();
+    console.log('[RTranslator] preload: hooks installed, TextManager:', window.TextManager ? 'exists' : 'missing');
+  } else {
+    console.log('[RTranslator] no preload map, waiting for WebSocket init');
   }
 
   window.__rtranslator_initTrans = function(map) {
@@ -41,16 +48,25 @@
   function translate(text) {
     if (!text || typeof text !== 'string') return text;
     var translated = translationMap[text];
-    return translated !== undefined ? translated : text;
+    if (translated !== undefined) {
+      if (!translate._logged) { translate._logged = true; console.log('[RTranslator] first translation:', text.substring(0,30), '->', translated.substring(0,30)); }
+      return translated;
+    }
+    return text;
   }
 
   window.__rtranslator_translate = translate;
 
   // === HOOK 1: JSON.parse — intercept ALL game data at load time ===
   var _jsonParse = JSON.parse;
+  var parseHookCount = 0;
   JSON.parse = function(text, reviver) {
     var obj = _jsonParse(text, reviver);
-    if (obj && typeof obj === 'object') translateRecursive(obj);
+    if (obj && typeof obj === 'object') {
+      parseHookCount++;
+      if (parseHookCount === 1) console.log('[RTranslator] JSON.parse hook active, map size:', Object.keys(translationMap).length);
+      translateRecursive(obj);
+    }
     return obj;
   };
 
@@ -124,6 +140,7 @@
   function installWindowHooks() {
     if (!window.Window_Base) { setTimeout(installWindowHooks, 100); return; }
 
+    console.log('[RTranslator] installWindowHooks: patching drawText etc.');
     if (Window_Base.prototype.drawText) {
       var _wdt = Window_Base.prototype.drawText;
       Window_Base.prototype.drawText = function(text, x, y, maxWidth, align) {

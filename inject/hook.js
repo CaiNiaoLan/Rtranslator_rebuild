@@ -1,6 +1,14 @@
 (function() {
   var WS_PORT = __RTRANSLATOR_WS_PORT__;
 
+  // Diagnostic: prove script injection worked
+  var diag = document.createElement('div');
+  diag.id = '__rtranslator_diag';
+  diag.style.cssText = 'position:fixed;top:4px;right:4px;background:lime;color:#000;padding:2px 6px;font-size:10px;z-index:99999;border-radius:3px;font-family:monospace';
+  diag.textContent = 'RTranslator v' + (window.__RTRANSLATOR_PRELOAD_MAP__ ? 'P' : '-');
+  document.addEventListener('DOMContentLoaded', function() { if (document.body && !document.getElementById('__rtranslator_diag')) document.body.appendChild(diag); });
+  if (document.body) document.body.appendChild(diag);
+
   function start() {
     window.__rtranslator_connect(WS_PORT);
 
