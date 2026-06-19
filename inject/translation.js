@@ -2,7 +2,14 @@
   if (window.__rtranslator_trans) return;
   window.__rtranslator_trans = {};
 
-  var translationMap = {};
+  var translationMap = window.__RTRANSLATOR_PRELOAD_MAP__ || {};
+  delete window.__RTRANSLATOR_PRELOAD_MAP__;
+
+  // If preloaded, initialize immediately (before game data loads and windows render)
+  if (Object.keys(translationMap).length > 0) {
+    translateTextManager();
+    installWindowHooks();
+  }
 
   window.__rtranslator_initTrans = function(map) {
     translationMap = map || {};

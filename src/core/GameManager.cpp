@@ -102,7 +102,17 @@ QString GameManager::buildInjectedHtml(const QString& original) {
     QString hook = loadTextFile(":/inject/hook.js");
     hook.replace("__RTRANSLATOR_WS_PORT__", QString::number(m_wsServer->port()));
 
+    // Embed translation map so it's available synchronously before JSON.parse hooks fire
+    QString preload;
+    if (!m_translationMap.empty()) {
+        nlohmann::json mapJson(m_translationMap);
+        QString jsonStr = QString::fromStdString(mapJson.dump());
+        jsonStr.replace("</", "<\\/");
+        preload = "window.__RTRANSLATOR_PRELOAD_MAP__=" + jsonStr + ";\n";
+    }
+
     QString scriptBlock = "\n<!-- RTranslator Injection -->\n<script>\n" +
+        preload +
         wsClient + "\n" + stateReader + "\n" + translation + "\n" + hook +
         "\n</script>\n<!-- End RTranslator -->\n";
 
