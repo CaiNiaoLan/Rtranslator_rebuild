@@ -46,21 +46,22 @@ Window {
             Repeater {
                 model: ["\uD83C\uDFE0 \u4E3B\u9875", "\uD83C\uDF10 \u7FFB\u8BD1", "\uD83D\uDDFA \u5730\u56FE", "\uD83D\uDD00 \u53D8\u91CF", "\uD83C\uDFAD \u4E8B\u4EF6", "\uD83D\uDCCA \u72B6\u6001"]
                 TabButton {
+                    id: tabBtn
                     text: modelData
                     width: implicitWidth + 20
                     font.pixelSize: 12
                     contentItem: Text {
-                        text: parent.text
-                        color: parent.checked ? theme.colors.accent : theme.colors.textMuted
-                        font: parent.font
+                        text: tabBtn.text
+                        color: tabBtn.checked ? theme.colors.accent : theme.colors.textMuted
+                        font: tabBtn.font
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                     background: Rectangle {
-                        color: parent.checked ? theme.colors.surfaceAlt : "transparent"
+                        color: tabBtn.checked ? theme.colors.surfaceAlt : "transparent"
                         radius: 0
                         Rectangle {
                             width: parent.width; height: 3; anchors.bottom: parent.bottom
-                            color: parent.parent.checked ? theme.colors.accent : "transparent"
+                            color: tabBtn.checked ? theme.colors.accent : "transparent"
                         }
                     }
                 }

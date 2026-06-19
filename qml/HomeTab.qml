@@ -43,14 +43,14 @@ Item {
                 Text { text: "\u26A1 \u4E00\u952E\u4F5C\u5F0A"; font.pixelSize: 14; font.bold: true; color: theme.colors.text }
 
                 Flow { Layout.fillWidth: true; Layout.fillHeight: true; spacing: 8
-                    CheatBtn { label: "\u6700\u5927\u91D1\u94B1"; action: "max_gold"; icon: "\uD83D\uDCB0"; color: theme.colors.warning }
-                    CheatBtn { label: "\u4E00\u51FB\u5FC5\u6740"; action: "force_win"; icon: "\u2694"; color: theme.colors.danger }
-                    CheatBtn { label: "\u5168\u5458\u6062\u590D"; action: "recover_all"; icon: "\uD83D\uDC9A"; color: theme.colors.success }
-                    CheatBtn { label: "\u5168\u9053\u5177"; action: "all_items"; icon: "\uD83C\uDF92"; color: theme.colors.success }
-                    CheatBtn { label: "\u795E\u6A21\u5F0F"; action: "god_mode"; icon: "\u26A1"; color: theme.colors.accent; isToggle: true }
-                    CheatBtn { label: "\u7A7F\u5899"; action: "walk_walls"; icon: "\uD83D\uDC7B"; color: theme.colors.accent; isToggle: true }
-                    CheatBtn { label: "\u53475\u7EA7"; action: "level_up"; icon: "\u2B50"; color: theme.colors.warning }
-                    CheatBtn { label: "\u9003\u8DD1"; action: "force_escape"; icon: "\uD83C\uDFC3"; color: theme.colors.accent }
+                    CheatBtn { label: "\u6700\u5927\u91D1\u94B1"; action: "max_gold"; icon: "\uD83D\uDCB0"; accentColor: theme.colors.warning }
+                    CheatBtn { label: "\u4E00\u51FB\u5FC5\u6740"; action: "force_win"; icon: "\u2694"; accentColor: theme.colors.danger }
+                    CheatBtn { label: "\u5168\u5458\u6062\u590D"; action: "recover_all"; icon: "\uD83D\uDC9A"; accentColor: theme.colors.success }
+                    CheatBtn { label: "\u5168\u9053\u5177"; action: "all_items"; icon: "\uD83C\uDF92"; accentColor: theme.colors.success }
+                    CheatBtn { label: "\u795E\u6A21\u5F0F"; action: "god_mode"; icon: "\u26A1"; accentColor: theme.colors.accent; isToggle: true }
+                    CheatBtn { label: "\u7A7F\u5899"; action: "walk_walls"; icon: "\uD83D\uDC7B"; accentColor: theme.colors.accent; isToggle: true }
+                    CheatBtn { label: "\u53475\u7EA7"; action: "level_up"; icon: "\u2B50"; accentColor: theme.colors.warning }
+                    CheatBtn { label: "\u9003\u8DD1"; action: "force_escape"; icon: "\uD83C\uDFC3"; accentColor: theme.colors.accent }
                 }
             }
         }
@@ -61,13 +61,13 @@ Item {
         property string label: ""
         property string action: ""
         property string icon: ""
-        property color color: theme.colors.accent
+        property color accentColor: theme.colors.accent
         property bool isToggle: false
         property bool active: false
 
         width: 100; height: 64; radius: theme.metrics.radiusSmall
-        color: active ? color : theme.colors.surfaceAlt
-        border.color: active ? color : theme.colors.border
+        color: active ? accentColor : theme.colors.surfaceAlt
+        border.color: active ? accentColor : theme.colors.border
         border.width: theme.metrics.borderWidth
 
         ColumnLayout { anchors.centerIn: parent; spacing: 2
