@@ -1,7 +1,12 @@
 #include "app/MainWindow.h"
 #include "bridge/Protocol.h"
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QFileDialog>
+#include <QTextStream>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQmlContext>
 
 MainWindow::MainWindow(QQmlApplicationEngine* engine, QObject* parent)
@@ -12,7 +17,10 @@ MainWindow::MainWindow(QQmlApplicationEngine* engine, QObject* parent)
       m_connected(false),
       m_statusText("就绪 — 请选择游戏目录")
 {
-    connect(m_gameManager.get(), &GameManager::gameStarted, this, &MainWindow::gameStarted);
+    connect(m_gameManager.get(), &GameManager::gameStarted, this, [this]() {
+        m_statusText = "游戏已启动，正在注入..."; emit statusTextChanged();
+        emit gameStarted();
+    });
     connect(m_gameManager.get(), &GameManager::gameStopped, this, &MainWindow::gameStopped);
     connect(m_gameManager.get(), &GameManager::injectionSucceeded, this, &MainWindow::onInjectionSucceeded);
     connect(m_gameManager.get(), &GameManager::injectionFailed, this, &MainWindow::onInjectionFailed);
@@ -29,77 +37,94 @@ MainWindow::MainWindow(QQmlApplicationEngine* engine, QObject* parent)
             m_cheatController->handleMessage(msg);
         });
     }
+    connect(m_cheatController.get(), &CheatController::notificationReceived, this,
+        [this](const QString& event, const QJsonObject& data) {
+            Q_UNUSED(data);
+            if (event == "hooks_installed") {
+                m_statusText = "翻译钩子已安装"; emit statusTextChanged();
+            } else if (event == "init_received") {
+                int count = data.value("count").toInt();
+                m_statusText = QString("游戏端收到 %1 条翻译").arg(count); emit statusTextChanged();
+            }
+        });
 }
 
 QString MainWindow::gamePath() const { return m_gamePath; }
-void MainWindow::setGamePath(const QString& path) { m_gamePath = path; emit gamePathChanged(); }
+void MainWindow::setGamePath(const QString& path) {
+    if (m_gamePath == path) return;
+    m_gamePath = path; emit gamePathChanged();
+}
 bool MainWindow::isConnected() const { return m_connected; }
 QString MainWindow::statusText() const { return m_statusText; }
 QString MainWindow::translationStats() const { return m_transStats; }
+QString MainWindow::currentMapName() const { return m_currentMapName; }
+QString MainWindow::currentMapId() const { return m_currentMapId; }
+QString MainWindow::playerX() const { return m_playerX; }
+QString MainWindow::playerY() const { return m_playerY; }
+QString MainWindow::selectedEventName() const { return m_selectedEventName; }
+QString MainWindow::selectedEventDetail() const { return m_selectedEventDetail; }
+int MainWindow::selectedEventId() const { return m_selectedEventId; }
+QVariantList MainWindow::mapListModel() const { return m_mapListModel; }
+QVariantList MainWindow::switchListModel() const { return m_switchListModel; }
+QVariantList MainWindow::variableListModel() const { return m_variableListModel; }
+QVariantList MainWindow::commonEventListModel() const { return m_commonEventListModel; }
+QVariantList MainWindow::mapEventListModel() const { return m_mapEventListModel; }
+QVariantList MainWindow::partyStatusModel() const { return m_partyStatusModel; }
+QVariantMap MainWindow::currentMapInfo() const { return m_currentMapInfo; }
 
 void MainWindow::launchGame() { m_gameManager->setGamePath(m_gamePath); m_gameManager->launch(); }
 void MainWindow::detachGame() { m_gameManager->detach(); }
 
 void MainWindow::loadGameDir(const QString& dir) {
-    if (!m_transEngine->detectGame(dir.toStdString())) {
-        m_statusText = "不是有效的 RPG Maker MV/MZ 游戏"; emit statusTextChanged(); return;
-    }
     QDir gameDir(dir);
     QStringList exes = gameDir.entryList({"*.exe"}, QDir::Files);
+    QString foundExe;
     for (const auto& exe : exes) {
         if (exe.compare("Game.exe", Qt::CaseInsensitive) == 0 || exe.contains("nw", Qt::CaseInsensitive)) {
-            m_gamePath = gameDir.absoluteFilePath(exe); emit gamePathChanged();
-            m_statusText = "已检测到游戏: " + dir; emit statusTextChanged(); return;
+            foundExe = gameDir.absoluteFilePath(exe);
+            break;
         }
     }
-    m_statusText = "未找到游戏可执行文件"; emit statusTextChanged();
+    if (!foundExe.isEmpty()) {
+        m_gamePath = foundExe; emit gamePathChanged();
+        if (m_transEngine->detectGame(dir)) {
+            m_statusText = "已检测到游戏: " + dir; emit statusTextChanged();
+        } else {
+            m_statusText = "游戏已选择（未检测到数据目录，翻译和修改功能可能受限）"; emit statusTextChanged();
+        }
+    } else if (!m_gamePath.isEmpty()) {
+        // Game was set by browseGameFile directly
+        if (m_transEngine->detectGame(dir)) {
+            m_statusText = "已检测到游戏: " + dir; emit statusTextChanged();
+        }
+    }
 }
 
 void MainWindow::loadTranslationFile(const QString& filePath) {
-    if (m_gamePath.isEmpty()) {
-        m_statusText = "请先选择游戏路径"; emit statusTextChanged(); return;
+    if (filePath.isEmpty()) {
+        m_statusText = "请先选择翻译文件"; emit statusTextChanged();
+        return;
     }
-    if (m_transEngine->loadTranslation(filePath.toStdString())) {
+    QString error;
+    if (m_transEngine->loadTranslation(filePath, &error)) {
         int count = static_cast<int>(m_transEngine->translationMap().size());
         m_transStats = QString("已载入 %1 条翻译").arg(count);
         emit translationStatsChanged(); emit translationLoaded(count);
         m_gameManager->setTranslationMap(m_transEngine->translationMap());
-        
-        // Sync with panel entries
-        m_entries = m_transEngine->extractFromGame(QFileInfo(m_gamePath).absolutePath().toStdString());
-        const auto& map = m_transEngine->translationMap();
-        for (auto& entry : m_entries) {
-            auto it = map.find(entry.original);
-            if (it != map.end()) entry.translation = it->second;
-        }
-        // Re-emit to update panel
-        QVariantList list;
-        for (const auto& e : m_entries) {
-            QVariantMap m;
-            m["id"] = QString::fromStdString(e.id);
-            m["source"] = QString::fromStdString(e.source);
-            m["context"] = QString::fromStdString(e.context);
-            m["original"] = QString::fromStdString(e.original);
-            m["translation"] = QString::fromStdString(e.translation);
-            list.append(m);
-        }
-        emit extractionComplete(list);
-        
-        if (m_gameManager->wsServer()) {
-            Protocol::ReloadTransCommand cmd; cmd.translationMap = m_transEngine->translationMap();
-            m_gameManager->wsServer()->sendMessage(QString::fromStdString(cmd.toJson().dump()));
-        }
+        // If game is already connected, push translation immediately
+        m_gameManager->sendTranslation();
+        m_statusText = QString("翻译就绪: %1 条").arg(count); emit statusTextChanged();
     } else {
-        m_statusText = "翻译文件加载失败"; emit statusTextChanged();
+        m_statusText = error.isEmpty() ? "加载失败" : error; emit statusTextChanged();
     }
 }
 
 void MainWindow::extractText() {
     if (m_gamePath.isEmpty()) {
-        m_statusText = "请先选择游戏路径"; emit statusTextChanged(); return;
+        m_statusText = "请先选择游戏目录"; emit statusTextChanged(); return;
     }
     QFileInfo info(m_gamePath);
-    auto entries = m_transEngine->extractFromGame(info.absolutePath().toStdString());
+    auto entries = m_transEngine->extractFromGame(info.absolutePath());
     QVariantList list;
     for (const auto& e : entries) {
         QVariantMap map;
@@ -107,11 +132,37 @@ void MainWindow::extractText() {
         map["source"] = QString::fromStdString(e.source);
         map["context"] = QString::fromStdString(e.context);
         map["original"] = QString::fromStdString(e.original);
-        map["translation"] = QString::fromStdString(e.translation);
         list.append(map);
     }
-    m_transStats = QString("已提取 %1 条文本").arg(list.size());
+    m_transStats = QString("已提取 %1 条原文").arg(list.size());
     emit translationStatsChanged(); emit extractionComplete(list);
+    m_statusText = QString("已提取 %1 条原文").arg(list.size()); emit statusTextChanged();
+}
+
+void MainWindow::exportOriginalText() {
+    if (m_gamePath.isEmpty()) {
+        m_statusText = "请先选择游戏目录"; emit statusTextChanged(); return;
+    }
+    QFileInfo info(m_gamePath);
+    auto entries = m_transEngine->extractFromGame(info.absolutePath());
+
+    nlohmann::json output = nlohmann::json::object();
+    for (const auto& e : entries) {
+        output[e.original] = "";
+    }
+
+    QString outPath = info.absolutePath() + "/rtranslator_export.json";
+    QFile file(outPath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream stream(&file);
+        stream.setCodec("UTF-8");
+        stream << QString::fromStdString(output.dump(2));
+        file.close();
+        m_statusText = "已导出: " + outPath; emit statusTextChanged();
+        m_transStats = QString("已导出 %1 条原文").arg(entries.size()); emit translationStatsChanged();
+    } else {
+        m_statusText = "导出失败，无法写入文件"; emit statusTextChanged();
+    }
 }
 
 void MainWindow::readGameState(const QString& path) { m_cheatController->readState(path.toStdString()); }
@@ -127,5 +178,66 @@ void MainWindow::writeGameState(const QString& path, const QVariant& value) {
 void MainWindow::triggerBattleVictory() { m_cheatController->battleVictory(); }
 void MainWindow::addItemToInventory(int id, const QString& type, int count) { m_cheatController->addItem(id, type.toStdString(), count); }
 
+void MainWindow::cheatAction(const QString& action) {
+    m_cheatController->sendCheat(action);
+}
+
+QString MainWindow::browseGameFile() {
+    QString path = QFileDialog::getOpenFileName(nullptr, "选择游戏可执行文件", QString(),
+        "游戏程序 (*.exe);;所有文件 (*)");
+    if (!path.isEmpty()) {
+        setGamePath(path);
+        QFileInfo info(path);
+        loadGameDir(info.absolutePath());
+    }
+    return path;
+}
+
+QString MainWindow::browseTranslationFile() {
+    qDebug() << "browseTranslationFile called";
+    QString path = QFileDialog::getOpenFileName(nullptr, "选择翻译文件", QString(),
+        "JSON 文件 (*.json);;所有文件 (*)");
+    qDebug() << "browseTranslationFile returned:" << path;
+    if (!path.isEmpty()) {
+        m_statusText = "已选择: " + path; emit statusTextChanged();
+    }
+    return path;
+}
+
 void MainWindow::onInjectionSucceeded() { m_connected = true; m_statusText = "已连接"; emit statusTextChanged(); emit connectionChanged(); }
 void MainWindow::onInjectionFailed(const QString& reason) { m_connected = false; m_statusText = "连接失败: " + reason; emit statusTextChanged(); emit connectionChanged(); }
+
+// ---- Tab data stubs ----
+void MainWindow::teleportToMap(int mapId) {
+    m_cheatController->writeState("player.mapId", mapId);
+}
+
+void MainWindow::toggleSwitch(int id, bool on) {
+    QString path = QString("switches.%1").arg(id);
+    writeGameState(path, QVariant(on));
+}
+
+void MainWindow::setVariable(int id, int value) {
+    QString path = QString("variables.%1").arg(id);
+    writeGameState(path, QVariant(value));
+}
+
+void MainWindow::selectCommonEvent(int id) {
+    m_selectedEventId = id;
+    m_selectedEventName = QString("\u516C\u5171\u4E8B\u4EF6 #%1").arg(id);
+    m_selectedEventDetail = QString("\u4E8B\u4EF6 ID: %1\n\u7C7B\u578B: \u516C\u5171\u4E8B\u4EF6\n\n\u529F\u80FD\u5F00\u53D1\u4E2D...").arg(id);
+    emit selectedEventNameChanged(); emit selectedEventDetailChanged();
+    emit selectedEventIdChanged();
+}
+
+void MainWindow::selectMapEvent(int id) {
+    m_selectedEventId = id;
+    m_selectedEventName = QString("\u5730\u56FE\u4E8B\u4EF6 #%1").arg(id);
+    m_selectedEventDetail = QString("\u4E8B\u4EF6 ID: %1\n\u7C7B\u578B: \u5730\u56FE\u4E8B\u4EF6\n\n\u529F\u80FD\u5F00\u53D1\u4E2D...").arg(id);
+    emit selectedEventNameChanged(); emit selectedEventDetailChanged();
+    emit selectedEventIdChanged();
+}
+
+void MainWindow::triggerSelectedEvent() {
+    m_cheatController->sendCheat(QString("trigger_event_%1").arg(m_selectedEventId));
+}
