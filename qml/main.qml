@@ -8,17 +8,6 @@ Window {
     title: "RTranslator"; color: theme.colors.bg
     minimumWidth: 1040; minimumHeight: 680
 
-    DropArea {
-        anchors.fill: parent
-        onDropped: {
-            if (drop.urls.length > 0) {
-                var p = drop.urls[0].toString().replace(/^file:\/{2,3}/, "").replace(/\//g, "\\")
-                p = decodeURIComponent(p)
-                if (p.toLowerCase().endsWith(".exe")) mainWindow.setGamePath(p)
-            }
-        }
-    }
-
     ColumnLayout { anchors.fill: parent; spacing: 0
 
         // ---- TOOLBAR ----
@@ -30,9 +19,6 @@ Window {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 14; spacing: 10
                 Text { text: "RTranslator"; color: theme.colors.accent; font.pixelSize: 17; font.bold: true }
                 Item { Layout.fillWidth: true }
-                CButton { label: "浏览"; onClicked: mainWindow.browseGameFile() }
-                CButton { label: "启动"; isPrimary: true; enabled: mainWindow.gamePath !== "" && !mainWindow.isConnected; onClicked: mainWindow.launchGame() }
-                CButton { label: "断开"; isDanger: true; enabled: mainWindow.isConnected; onClicked: mainWindow.detachGame() }
                 CButton { label: "\uD83C\uDFA8"; onClicked: theme.cycleTheme() }
             }
         }
@@ -97,6 +83,17 @@ Window {
                 Text { text: mainWindow.isConnected ? "\u5DF2\u8FDE\u63A5" : "\u5C31\u7EEA"; color: mainWindow.isConnected ? theme.colors.success : theme.colors.textMuted; font.pixelSize: 11 }
                 Item { Layout.fillWidth: true }
                 Text { text: mainWindow.gamePath !== "" ? mainWindow.gamePath : "\u672A\u9009\u62E9\u6E38\u620F"; color: theme.colors.textMuted; font.pixelSize: 10; elide: Text.ElideMiddle; Layout.maximumWidth: 300 }
+            }
+        }
+    }
+
+    DropArea {
+        anchors.fill: parent
+        onDropped: {
+            if (drop.urls.length > 0) {
+                var p = drop.urls[0].toString().replace(/^file:\/{2,3}/, "").replace(/\//g, "\\")
+                p = decodeURIComponent(p)
+                if (p.toLowerCase().endsWith(".exe")) mainWindow.setGamePath(p)
             }
         }
     }

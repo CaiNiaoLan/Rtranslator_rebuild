@@ -54,9 +54,12 @@ bool GameManager::prepareInjection() {
     }
     
     if (m_htmlPath.isEmpty()) {
-        emit injectionFailed("未找到 index.html，无法注入翻译脚本");
+        qWarning() << "RTranslator: index.html not found in" << m_gameDir;
+        emit injectionFailed("未找到 index.html，无法注入翻译脚本\n检查过: " + candidates.join(", "));
         return false;
     }
+
+    qDebug() << "RTranslator: injecting into" << m_htmlPath << "mapSize=" << m_translationMap.size();
 
     // Read original HTML
     QFile file(m_htmlPath);

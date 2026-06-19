@@ -2,20 +2,23 @@
   if (window.__rtranslator_trans) return;
   window.__rtranslator_trans = {};
 
+  var _d = window.__rtranslator_dappend || function(){};
+  var _b = window.__rtranslator_dbadge || function(){};
   var translationMap = window.__RTRANSLATOR_PRELOAD_MAP__ || {};
   var preloadCount = Object.keys(translationMap).length;
-  console.log('[RTranslator] preload map size:', preloadCount);
+  _d('TRANS_PRELOAD map=' + preloadCount);
+  _b('MAP' + preloadCount);
   delete window.__RTRANSLATOR_PRELOAD_MAP__;
 
   // If preloaded, initialize immediately (before game data loads and windows render)
   if (preloadCount > 0) {
-    console.log('[RTranslator] preload: translating TextManager');
+    _d('TRANS_PRELOAD_INIT');
     translateTextManager();
-    console.log('[RTranslator] preload: installing window hooks');
+    _d('TRANS_TEXTMGR_DONE');
     installWindowHooks();
-    console.log('[RTranslator] preload: hooks installed, TextManager:', window.TextManager ? 'exists' : 'missing');
+    _d('TRANS_HOOKS_DONE');
   } else {
-    console.log('[RTranslator] no preload map, waiting for WebSocket init');
+    _d('TRANS_NO_PRELOAD');
   }
 
   window.__rtranslator_initTrans = function(map) {
@@ -49,7 +52,7 @@
     if (!text || typeof text !== 'string') return text;
     var translated = translationMap[text];
     if (translated !== undefined) {
-      if (!translate._logged) { translate._logged = true; console.log('[RTranslator] first translation:', text.substring(0,30), '->', translated.substring(0,30)); }
+      if (!translate._logged) { translate._logged = true; _d('TRANSLATE_OK src=' + text.substring(0,40) + ' dst=' + translated.substring(0,40)); }
       return translated;
     }
     return text;
@@ -64,7 +67,7 @@
     var obj = _jsonParse(text, reviver);
     if (obj && typeof obj === 'object') {
       parseHookCount++;
-      if (parseHookCount === 1) console.log('[RTranslator] JSON.parse hook active, map size:', Object.keys(translationMap).length);
+      if (parseHookCount === 1) { _d('JSON_PARSE_HOOK_FIRED map=' + Object.keys(translationMap).length); _b('PHK' + Object.keys(translationMap).length); }
       translateRecursive(obj);
     }
     return obj;
@@ -140,7 +143,7 @@
   function installWindowHooks() {
     if (!window.Window_Base) { setTimeout(installWindowHooks, 100); return; }
 
-    console.log('[RTranslator] installWindowHooks: patching drawText etc.');
+    _d('HOOKS_INSTALLING hasDrawText=' + !!Window_Base.prototype.drawText);
     if (Window_Base.prototype.drawText) {
       var _wdt = Window_Base.prototype.drawText;
       Window_Base.prototype.drawText = function(text, x, y, maxWidth, align) {

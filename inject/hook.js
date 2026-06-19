@@ -1,22 +1,24 @@
 (function() {
   var WS_PORT = __RTRANSLATOR_WS_PORT__;
 
-  // Diagnostic: prove script injection worked
-  var diag = document.createElement('div');
-  diag.id = '__rtranslator_diag';
-  diag.style.cssText = 'position:fixed;top:4px;right:4px;background:lime;color:#000;padding:2px 6px;font-size:10px;z-index:99999;border-radius:3px;font-family:monospace';
-  diag.textContent = 'RTranslator v' + (window.__RTRANSLATOR_PRELOAD_MAP__ ? 'P' : '-');
-  document.addEventListener('DOMContentLoaded', function() { if (document.body && !document.getElementById('__rtranslator_diag')) document.body.appendChild(diag); });
-  if (document.body) document.body.appendChild(diag);
+  var _d = window.__rtranslator_dappend || function(){};
+  var _b = window.__rtranslator_dbadge || function(){};
+  var mapSize = window.__RTRANSLATOR_PRELOAD_MAP__ ? Object.keys(window.__RTRANSLATOR_PRELOAD_MAP__).length : 0;
+  _d('HOOK_LOADED map=' + mapSize + ' ws=' + WS_PORT);
 
   function start() {
     window.__rtranslator_connect(WS_PORT);
 
     window.__rtranslator_on('init', function(msg) {
-      window.__rtranslator_send({ type: 'notify', event: 'init_received', count: msg.map ? Object.keys(msg.map).length : 0 });
+      var sz = msg.map ? Object.keys(msg.map).length : 0;
+      _d('INIT map=' + sz);
+      _b('INIT' + sz);
+      window.__rtranslator_send({ type: 'notify', event: 'init_received', count: sz });
       if (msg.map) window.__rtranslator_initTrans(msg.map);
       window.__rtranslator_installHooks();
       window.__rtranslator_send({ type: 'notify', event: 'hooks_installed' });
+      _d('INIT_DONE');
+      window.__rtranslator_dflush();
     });
 
     window.__rtranslator_on('read', function(msg) {
@@ -73,6 +75,9 @@
     });
 
     window.__rtranslator_on('reload_trans', function(msg) {
+      var sz = msg.map ? Object.keys(msg.map).length : 0;
+      _d('RELOAD_TRANS map=' + sz);
+      _b('RLD' + sz);
       if (msg.map) { window.__rtranslator_initTrans(msg.map); }
       window.__rtranslator_send({ type: 'ack', cmd: 'reload_trans', success: true });
     });
@@ -81,7 +86,11 @@
   var tries = 0;
   function waitForReady() {
     tries++;
-    if (window.Window_Base || tries > 150) start();
+    if (window.Window_Base || tries > 150) {
+      _d('START tries=' + tries + ' hasWB=' + !!window.Window_Base);
+      _b('START');
+      start();
+    }
     else setTimeout(waitForReady, 200);
   }
   waitForReady();
