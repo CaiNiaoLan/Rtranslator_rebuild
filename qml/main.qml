@@ -24,7 +24,7 @@ Window {
         // ---- TOOLBAR ----
         Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: 48
-            color: theme.colors.surface; border.color: theme.colors.border
+            color: theme.colors.surface; border.color: theme.colors.border; border.width: theme.metrics.borderWidth
 
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 14; spacing: 10
@@ -41,7 +41,7 @@ Window {
         TabBar {
             id: tabBar
             Layout.fillWidth: true
-            background: Rectangle { color: theme.colors.surface; border.color: theme.colors.border }
+            background: Rectangle { color: theme.colors.surface; border.color: theme.colors.border; border.width: theme.metrics.borderWidth }
 
             Repeater {
                 model: ["\uD83C\uDFE0 \u4E3B\u9875", "\uD83C\uDF10 \u7FFB\u8BD1", "\uD83D\uDDFA \u5730\u56FE", "\uD83D\uDD00 \u53D8\u91CF", "\uD83C\uDFAD \u4E8B\u4EF6", "\uD83D\uDCCA \u72B6\u6001"]
@@ -84,7 +84,7 @@ Window {
         // ---- BOTTOM BAR ----
         Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: 26
-            color: theme.colors.surface; border.color: theme.colors.border
+            color: theme.colors.surface; border.color: theme.colors.border; border.width: theme.metrics.borderWidth
 
             RowLayout { anchors.fill: parent; anchors.leftMargin: 16; anchors.rightMargin: 16; spacing: 10
                 Rectangle { width: 6; height: 6; radius: 3; color: mainWindow.isConnected ? theme.colors.success : theme.colors.textMuted
