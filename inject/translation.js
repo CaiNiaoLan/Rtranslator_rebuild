@@ -23,6 +23,7 @@
 
   window.__rtranslator_initTrans = function(map) {
     translationMap = map || {};
+    _buildIndexes();
     translateTextManager();
     translateExistingData();
   };
@@ -48,17 +49,106 @@
     }
   }
 
+  // Build secondary indexes for fuzzy matching
+  var _escapedMap = {}; // key: stripped-of-escape-codes text → translation
+  var _lineMap = {};    // key: single line → per-line translation
+  var _prefixIdx = {};  // key: first 2 chars → array of candidate keys (for substring matching)
+  var _maxSubScan = 200;
+  function _buildIndexes() {
+    _escapedMap = {}; _lineMap = {}; _prefixIdx = {};
+    var keys = Object.keys(translationMap);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i], v = translationMap[k];
+      // Strip RPG Maker escape codes for normalized matching
+      var stripped = k.replace(/\\[VvNnCcPp]\s*\[\s*\d+\s*\]/g, '')
+                      .replace(/\\[Gg]/g, '')
+                      .replace(/\\[{}]/g, '').trim();
+      if (stripped && !_escapedMap[stripped]) _escapedMap[stripped] = v;
+
+      // Split multi-line keys into per-line entries
+      if (k.indexOf('\n') >= 0) {
+        var kl = k.split('\n'), vl = v.split('\n');
+        var len = Math.min(kl.length, vl.length);
+        for (var j = 0; j < len; j++) {
+          var rawLine = kl[j], vt = vl[j].trim();
+          var trimmedKey = rawLine.trim();
+          if (trimmedKey && !_lineMap[trimmedKey]) _lineMap[trimmedKey] = vt;
+          if (rawLine !== trimmedKey && rawLine && !_lineMap[rawLine]) _lineMap[rawLine] = vt;
+        }
+      }
+
+      // Prefix index for fast substring search
+      if (k.length >= 2) {
+        var pf = k.substring(0, 2);
+        if (!_prefixIdx[pf]) _prefixIdx[pf] = [];
+        if (_prefixIdx[pf].length < _maxSubScan) _prefixIdx[pf].push(k);
+      }
+    }
+  }
+  _buildIndexes();
+
+  var _totalLookups = 0, _totalHits = 0, _sampleMisses = [];
   function translate(text) {
     if (!text || typeof text !== 'string') return text;
-    var translated = translationMap[text];
-    if (translated !== undefined) {
-      if (!translate._logged) { translate._logged = true; _d('TRANSLATE_OK src=' + text.substring(0,40) + ' dst=' + translated.substring(0,40)); }
-      return translated;
+    _totalLookups++;
+    var result;
+
+    // Strategy 1: Exact match (fast path)
+    result = translationMap[text];
+    if (result !== undefined) { _totalHits++; return result; }
+
+    // Strategy 2: Trimmed exact match
+    var trimmed = text.trim();
+    if (trimmed !== text) {
+      result = translationMap[trimmed];
+      if (result !== undefined) { _totalHits++; return result; }
+    }
+
+    // Strategy 3: Line match (multi-line keys rendered one line at a time)
+    if ((result = _lineMap[text]) !== undefined) { _totalHits++; return result; }
+    if (trimmed !== text && (result = _lineMap[trimmed]) !== undefined) { _totalHits++; return result; }
+
+    // Strategy 4: Strip escape codes and match normalized map
+    var stripped = text.replace(/\\[VvNnCcPp]\s*\[\s*\d+\s*\]/g, '')
+                       .replace(/\\[Gg]/g, '')
+                       .replace(/\\[{}]/g, '').trim();
+    if (stripped !== text) {
+      result = translationMap[stripped];
+      if (result !== undefined) { _totalHits++; return result; }
+      result = _escapedMap[stripped];
+      if (result !== undefined) { _totalHits++; return result; }
+    }
+
+    // Strategy 5: Substring containment using prefix index (only short texts)
+    // Game window wrapping produces short fragments; try matching as substring of longer keys
+    if (text.length >= 2 && text.length <= 80) {
+      var pf = text.substring(0, 2);
+      var candidates = _prefixIdx[pf] || [];
+      for (var i = 0; i < candidates.length; i++) {
+        if (candidates[i].indexOf(text) >= 0) { _totalHits++; return translationMap[candidates[i]]; }
+      }
+    }
+
+    // Strategy 6: Text might CONTAIN a key (e.g. variable-substituted text contains a template)
+    // Only when text is short enough to be manageable
+    if (text.length <= 120) {
+      var keys = Object.keys(translationMap);
+      for (var i = 0; i < keys.length && i < _maxSubScan; i++) {
+        if (text.indexOf(keys[i]) >= 0) { _totalHits++; return translationMap[keys[i]]; }
+      }
+    }
+
+    // Track misses
+    if (_sampleMisses.length < 10 && text.length > 1 && !/^[\s\d]+$/.test(text)) {
+      _sampleMisses.push(text.substring(0,40));
     }
     return text;
   }
 
   window.__rtranslator_translate = translate;
+  window.__rtranslator_transStats = function() {
+    return 'lookups=' + _totalLookups + ' hits=' + _totalHits + ' sampleMisses=' + JSON.stringify(_sampleMisses);
+  };
 
   // === HOOK 1: JSON.parse — intercept ALL game data at load time ===
   var _jsonParse = JSON.parse;
