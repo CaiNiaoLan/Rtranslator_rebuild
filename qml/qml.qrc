@@ -6,6 +6,7 @@
         <file>HomeTab.qml</file>
         <file>HomeTabMtool.qml</file>
         <file>HomeTabDrawer.qml</file>
+        <file>CheatBtn.qml</file>
         <file>TranslationTab.qml</file>
         <file>MapTab.qml</file>
         <file>VariableTab.qml</file>

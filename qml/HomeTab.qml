@@ -55,34 +55,4 @@ Item {
             }
         }
     }
-
-    component CheatBtn: Rectangle {
-        id: cheat
-        property string label: ""
-        property string action: ""
-        property string icon: ""
-        property color accentColor: theme.colors.accent
-        property bool isToggle: false
-        property bool active: false
-
-        width: 100; height: 64; radius: theme.metrics.radiusSmall
-        color: active ? accentColor : theme.colors.surfaceAlt
-        border.color: active ? accentColor : theme.colors.border
-        border.width: theme.metrics.borderWidth
-
-        ColumnLayout { anchors.centerIn: parent; spacing: 2
-            Text { text: icon; font.pixelSize: 18; Layout.alignment: Qt.AlignHCenter }
-            Text { text: (active && isToggle ? "\u2713 " : "") + label; color: active ? "#fff" : (mainWindow.isConnected ? theme.colors.text : theme.colors.textMuted); font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
-        }
-
-        MouseArea {
-            anchors.fill: parent; cursorShape: Qt.PointingHandCursor; enabled: mainWindow.isConnected
-            onClicked: {
-                mainWindow.cheatAction(action)
-                if (isToggle) active = !active
-                else { active = true; flashTimer.start() }
-            }
-        }
-        Timer { id: flashTimer; interval: 1200; onTriggered: active = false }
-    }
 }
