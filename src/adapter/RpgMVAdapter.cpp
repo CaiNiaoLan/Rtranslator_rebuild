@@ -66,12 +66,43 @@ std::vector<TranslationEntry> RpgMVAdapter::extractText(const QString& gameDir) 
         }
     }
 
-    for (int i = 1; i <= 999; i++) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "/Map%03d.json", i);
-        QString mapPath = dataPath + QString::fromUtf8(buf);
-        if (QFileInfo::exists(mapPath)) {
-            extractFromMapFile(mapPath, QString::fromUtf8("Map") + QString::fromUtf8(buf), entries);
+    // Use MapInfos.json to find all valid map IDs (works for both MV and MZ)
+    QString mapInfosPath = dataPath + "/MapInfos.json";
+    auto mapInfosOpt = JsonHelper::loadJsonFile(mapInfosPath);
+    int mapCount = 0;
+    if (mapInfosOpt.has_value() && mapInfosOpt->is_object()) {
+        for (auto& [idStr, info] : mapInfosOpt->items()) {
+            int mapId = std::stoi(idStr);
+            char mvBuf[64], mzBuf[64];
+            snprintf(mvBuf, sizeof(mvBuf), "/Map%03d.json", mapId);
+            snprintf(mzBuf, sizeof(mzBuf), "/MapData_%03d.json", mapId);
+            QString mvPath = dataPath + QString::fromUtf8(mvBuf);
+            QString mzPath = dataPath + QString::fromUtf8(mzBuf);
+            // Also try MZ bare-number format: MapData_1.json, MapData_2.json, etc.
+            char mzBareBuf[64];
+            snprintf(mzBareBuf, sizeof(mzBareBuf), "/MapData_%d.json", mapId);
+            QString mzBarePath = dataPath + QString::fromUtf8(mzBareBuf);
+
+            QString actualPath;
+            if (QFileInfo::exists(mvPath)) { actualPath = mvPath; }
+            else if (QFileInfo::exists(mzPath)) { actualPath = mzPath; }
+            else if (QFileInfo::exists(mzBarePath)) { actualPath = mzBarePath; }
+
+            if (!actualPath.isEmpty()) {
+                extractFromMapFile(actualPath, QString::fromUtf8("Map%1.json").arg(mapId, 3, 10, QChar('0')), entries);
+                mapCount++;
+            }
+        }
+    }
+    // Fallback: brute-force scan 1..999 if MapInfos.json wasn't found
+    if (mapCount == 0) {
+        for (int i = 1; i <= 999; i++) {
+            char mvBuf[64];
+            snprintf(mvBuf, sizeof(mvBuf), "/Map%03d.json", i);
+            QString mapPath = dataPath + QString::fromUtf8(mvBuf);
+            if (QFileInfo::exists(mapPath)) {
+                extractFromMapFile(mapPath, QString::fromUtf8("Map%1.json").arg(i, 3, 10, QChar('0')), entries);
+            }
         }
     }
 

@@ -26,6 +26,13 @@
     _buildIndexes();
     translateTextManager();
     translateExistingData();
+    // Force scene refresh to apply new translations immediately
+    try {
+      if (typeof SceneManager !== 'undefined' && SceneManager._scene) {
+        var ctor = SceneManager._scene.constructor;
+        SceneManager.goto(ctor);
+      }
+    } catch(e) { _d('REFRESH_ERR:' + e.message); }
   };
 
   // Translate TextManager templates immediately
