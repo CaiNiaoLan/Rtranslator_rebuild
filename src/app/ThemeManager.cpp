@@ -1,131 +1,182 @@
 #include "app/ThemeManager.h"
+#include <QDebug>
+
+namespace {
+struct Variant { QString name; QVariantMap colors; QVariantMap metrics; };
+struct LayoutDef { QString label; QStringList variants; };
+
+const QMap<QString, Variant>& variantMap() {
+    static QMap<QString, Variant> m;
+    if (m.isEmpty()) {
+        // ===== Mtool-Classic =====
+        m["Mtool:Cyan"] = {"Cyan",
+            {{"bg","#E3F2FD"},{"surface","#FFFFFF"},{"surfaceAlt","#BBDEFB"},{"inputBg","#FFFFFF"},
+             {"border","#90CAF9"},{"text","#0D47A1"},{"textMuted","#546E7A"},
+             {"accent","#1976D2"},{"accentText","#FFFFFF"},{"accentSoft","#42A5F5"},
+             {"danger","#D32F2F"},{"success","#2E7D32"},{"warning","#F57C00"},
+             {"chipBg","#E1F5FE"},{"chipText","#01579B"},{"chipHover","#B3E5FC"},
+             {"dropBg","#E1F5FE"},{"dropBorder","#0288D1"}},
+            {{"radius",14.0},{"radiusSmall",8.0},{"radiusPill",16.0},{"borderWidth",1.0},
+             {"chipHeight",28.0},{"dropHeight",120.0},{"spacing",8.0},{"padding",12.0}}};
+
+        m["Mtool:Slate"] = {"Slate",
+            {{"bg","#ECEFF1"},{"surface","#FFFFFF"},{"surfaceAlt","#CFD8DC"},{"inputBg","#FFFFFF"},
+             {"border","#90A4AE"},{"text","#263238"},{"textMuted","#546E7A"},
+             {"accent","#455A64"},{"accentText","#FFFFFF"},{"accentSoft","#607D8B"},
+             {"danger","#C62828"},{"success","#2E7D32"},{"warning","#EF6C00"},
+             {"chipBg","#CFD8DC"},{"chipText","#263238"},{"chipHover","#B0BEC5"},
+             {"dropBg","#CFD8DC"},{"dropBorder","#455A64"}},
+            {{"radius",14.0},{"radiusSmall",8.0},{"radiusPill",16.0},{"borderWidth",1.0},
+             {"chipHeight",28.0},{"dropHeight",120.0},{"spacing",8.0},{"padding",12.0}}};
+
+        m["Mtool:Forest"] = {"Forest",
+            {{"bg","#E8F5E9"},{"surface","#FFFFFF"},{"surfaceAlt","#C8E6C9"},{"inputBg","#FFFFFF"},
+             {"border","#81C784"},{"text","#1B5E20"},{"textMuted","#558B2F"},
+             {"accent","#2E7D32"},{"accentText","#FFFFFF"},{"accentSoft","#43A047"},
+             {"danger","#C62828"},{"success","#1B5E20"},{"warning","#E65100"},
+             {"chipBg","#DCEDC8"},{"chipText","#1B5E20"},{"chipHover","#C5E1A5"},
+             {"dropBg","#DCEDC8"},{"dropBorder","#388E3C"}},
+            {{"radius",14.0},{"radiusSmall",8.0},{"radiusPill",16.0},{"borderWidth",1.0},
+             {"chipHeight",28.0},{"dropHeight",120.0},{"spacing",8.0},{"padding",12.0}}};
+
+        // ===== Side-Drawer =====
+        m["Drawer:Light"] = {"Light",
+            {{"bg","#FAFAFA"},{"surface","#FFFFFF"},{"surfaceAlt","#F5F5F5"},{"inputBg","#FFFFFF"},
+             {"border","#E5E7EB"},{"text","#1F2937"},{"textMuted","#6B7280"},
+             {"accent","#10B981"},{"accentText","#FFFFFF"},{"accentSoft","#34D399"},
+             {"danger","#EF4444"},{"success","#10B981"},{"warning","#F59E0B"},
+             {"chipBg","#ECFDF5"},{"chipText","#047857"},{"chipHover","#D1FAE5"},
+             {"dropBg","#F0FDF4"},{"dropBorder","#10B981"}},
+            {{"radius",10.0},{"radiusSmall",6.0},{"radiusPill",8.0},{"borderWidth",1.0},
+             {"chipHeight",36.0},{"dropHeight",100.0},{"spacing",12.0},{"padding",16.0}}};
+
+        m["Drawer:Dark"] = {"Dark",
+            {{"bg","#0F172A"},{"surface","#1E293B"},{"surfaceAlt","#334155"},{"inputBg","#1E293B"},
+             {"border","#475569"},{"text","#F8FAFC"},{"textMuted","#94A3B8"},
+             {"accent","#10B981"},{"accentText","#0F172A"},{"accentSoft","#34D399"},
+             {"danger","#F87171"},{"success","#34D399"},{"warning","#FBBF24"},
+             {"chipBg","#064E3B"},{"chipText","#6EE7B7"},{"chipHover","#065F46"},
+             {"dropBg","#134E4A"},{"dropBorder","#10B981"}},
+            {{"radius",10.0},{"radiusSmall",6.0},{"radiusPill",8.0},{"borderWidth",1.0},
+             {"chipHeight",36.0},{"dropHeight",100.0},{"spacing",12.0},{"padding",16.0}}};
+
+        // ===== Floating-Panels =====
+        m["Floating:Dark"] = {"Dark",
+            {{"bg","#1E1E2E"},{"surface","#313244"},{"surfaceAlt","#45475A"},{"inputBg","#45475A"},
+             {"border","#6C7086"},{"text","#CDD6F4"},{"textMuted","#A6ADC8"},
+             {"accent","#CBA6F7"},{"accentText","#1E1E2E"},{"accentSoft","#A78BFA"},
+             {"danger","#F38BA8"},{"success","#A6E3A1"},{"warning","#F9E2AF"},
+             {"chipBg","#45475A"},{"chipText","#CDD6F4"},{"chipHover","#585B70"},
+             {"dropBg","#313244"},{"dropBorder","#CBA6F7"}},
+            {{"radius",12.0},{"radiusSmall",6.0},{"radiusPill",10.0},{"borderWidth",1.0},
+             {"chipHeight",32.0},{"dropHeight",80.0},{"spacing",10.0},{"padding",14.0}}};
+
+        m["Floating:Dawn"] = {"Dawn",
+            {{"bg","#FFF7ED"},{"surface","#FFFFFF"},{"surfaceAlt","#FFE4C7"},{"inputBg","#FFFFFF"},
+             {"border","#FDBA74"},{"text","#7C2D12"},{"textMuted","#9A3412"},
+             {"accent","#EA580C"},{"accentText","#FFFFFF"},{"accentSoft","#FB923C"},
+             {"danger","#DC2626"},{"success","#16A34A"},{"warning","#D97706"},
+             {"chipBg","#FFEDD5"},{"chipText","#9A3412"},{"chipHover","#FED7AA"},
+             {"dropBg","#FFEDD5"},{"dropBorder","#EA580C"}},
+            {{"radius",12.0},{"radiusSmall",6.0},{"radiusPill",10.0},{"borderWidth",1.0},
+             {"chipHeight",32.0},{"dropHeight",80.0},{"spacing",10.0},{"padding",14.0}}};
+    }
+    return m;
+}
+
+const QMap<QString, LayoutDef>& layoutMap() {
+    static QMap<QString, LayoutDef> m;
+    if (m.isEmpty()) {
+        m["Mtool"]    = {"Mtool-Classic (\u60dc\u60dc\u00B7\u7C7B\u4F20\u7EDF)", {"Cyan", "Slate", "Forest"}};
+        m["Drawer"]   = {"Side-Drawer (\u4FA7\u8FB9\u5BFC\u822A)",               {"Light", "Dark"}};
+        m["Floating"] = {"Floating-Panels (\u6D6E\u52A8\u9762\u677F)",           {"Dark", "Dawn"}};
+    }
+    return m;
+}
+
+} // namespace
 
 ThemeManager::ThemeManager(QObject* parent)
     : QObject(parent), m_settings("RTranslator", "Theme")
 {
-    QString saved = m_settings.value("theme", "Aurora").toString();
-    loadTheme(saved);
+    QString saved = m_settings.value("theme", "Mtool:Cyan").toString();
+    if (!variantMap().contains(saved)) saved = "Mtool:Cyan";
+    applyTheme(saved);
 }
 
 QString ThemeManager::currentTheme() const { return m_currentTheme; }
+QString ThemeManager::layoutName() const {
+    int i = m_currentTheme.indexOf(':');
+    return i < 0 ? m_currentTheme : m_currentTheme.left(i);
+}
+QString ThemeManager::variantName() const {
+    int i = m_currentTheme.indexOf(':');
+    return i < 0 ? QString() : m_currentTheme.mid(i + 1);
+}
+QVariantMap ThemeManager::colors() const { return m_colors; }
+QVariantMap ThemeManager::metrics() const { return m_metrics; }
+
+QStringList ThemeManager::themes() const {
+    QStringList out;
+    out << variantMap().keys();
+    return out;
+}
+QStringList ThemeManager::layouts() const {
+    QStringList out;
+    out << layoutMap().keys();
+    return out;
+}
+
+QStringList ThemeManager::variantsOf(const QString& layout) const {
+    return layoutMap().value(layout).variants;
+}
 
 void ThemeManager::setCurrentTheme(const QString& theme) {
     if (theme == m_currentTheme) return;
-    loadTheme(theme);
+    if (!variantMap().contains(theme)) return;
+    applyTheme(theme);
     saveTheme();
 }
 
-QStringList ThemeManager::themeNames() const {
-    return {"Glassmorphism", "Brutalism", "Bento", "Minimalism", "Aurora"};
+void ThemeManager::setLayout(const QString& layout) {
+    if (!layoutMap().contains(layout)) return;
+    QStringList varList = layoutMap().value(layout).variants;
+    QString v = variantName();
+    if (v.isEmpty() || !varList.contains(v)) v = varList.first();
+    QString key = layout + ":" + v;
+    if (key == m_currentTheme) return;
+    applyTheme(key);
+    saveTheme();
+}
+
+void ThemeManager::setVariant(const QString& variant) {
+    QString l = layoutName();
+    QString key = l + ":" + variant;
+    if (!variantMap().contains(key)) return;
+    applyTheme(key);
+    saveTheme();
 }
 
 void ThemeManager::cycleTheme() {
-    QStringList names = themeNames();
-    int idx = names.indexOf(m_currentTheme);
-    if (idx < 0) idx = names.size() - 1;
-    setCurrentTheme(names[(idx + 1) % names.size()]);
+    QStringList all = themes();
+    int idx = all.indexOf(m_currentTheme);
+    if (idx < 0) idx = -1;
+    QString next = all[(idx + 1) % all.size()];
+    applyTheme(next);
+    saveTheme();
+}
+
+void ThemeManager::applyTheme(const QString& key) {
+    m_currentTheme = key;
+    const Variant& v = variantMap().value(key);
+    m_colors = v.colors;
+    m_metrics = v.metrics;
+    emit colorsChanged();
+    emit metricsChanged();
+    emit currentThemeChanged();
 }
 
 void ThemeManager::saveTheme() {
     m_settings.setValue("theme", m_currentTheme);
     m_settings.sync();
-}
-
-QVariantMap ThemeManager::colors() const { return m_colors; }
-QVariantMap ThemeManager::metrics() const { return m_metrics; }
-
-void ThemeManager::loadTheme(const QString& name) {
-    m_currentTheme = name;
-    m_colors.clear();
-    m_metrics.clear();
-
-    if (name == "Glassmorphism") {
-        m_colors["bg"] = "#1a1a2e";
-        m_colors["surface"] = "#30ffffff";
-        m_colors["surfaceAlt"] = "#20c8d0e0";
-        m_colors["border"] = "#30ffffff";
-        m_colors["text"] = "#e8e8f0";
-        m_colors["textMuted"] = "#8890a8";
-        m_colors["accent"] = "#7890e8";
-        m_colors["accentText"] = "#ffffff";
-        m_colors["danger"] = "#f06070";
-        m_colors["success"] = "#60c888";
-        m_colors["warning"] = "#e8b850";
-        m_colors["inputBg"] = "#20ffffff";
-        m_metrics["radius"] = 16;
-        m_metrics["radiusSmall"] = 10;
-        m_metrics["borderWidth"] = 1;
-    }
-    else if (name == "Brutalism") {
-        m_colors["bg"] = "#ffffff";
-        m_colors["surface"] = "#ffffff";
-        m_colors["surfaceAlt"] = "#f0f000";
-        m_colors["border"] = "#000000";
-        m_colors["text"] = "#000000";
-        m_colors["textMuted"] = "#444444";
-        m_colors["accent"] = "#0000ff";
-        m_colors["accentText"] = "#ffffff";
-        m_colors["danger"] = "#ff0000";
-        m_colors["success"] = "#00ff00";
-        m_colors["warning"] = "#ffff00";
-        m_colors["inputBg"] = "#ffffff";
-        m_metrics["radius"] = 0;
-        m_metrics["radiusSmall"] = 0;
-        m_metrics["borderWidth"] = 3;
-    }
-    else if (name == "Bento") {
-        m_colors["bg"] = "#f2efea";
-        m_colors["surface"] = "#ffffff";
-        m_colors["surfaceAlt"] = "#faf7f2";
-        m_colors["border"] = "#e8e2d8";
-        m_colors["text"] = "#2c2416";
-        m_colors["textMuted"] = "#8a8070";
-        m_colors["accent"] = "#e8a87c";
-        m_colors["accentText"] = "#ffffff";
-        m_colors["danger"] = "#d4695a";
-        m_colors["success"] = "#7ba587";
-        m_colors["warning"] = "#d4a853";
-        m_colors["inputBg"] = "#faf7f2";
-        m_metrics["radius"] = 24;
-        m_metrics["radiusSmall"] = 16;
-        m_metrics["borderWidth"] = 1;
-    }
-    else if (name == "Minimalism") {
-        m_colors["bg"] = "#ffffff";
-        m_colors["surface"] = "#fafafa";
-        m_colors["surfaceAlt"] = "#f5f5f5";
-        m_colors["border"] = "#e5e5e5";
-        m_colors["text"] = "#111111";
-        m_colors["textMuted"] = "#888888";
-        m_colors["accent"] = "#111111";
-        m_colors["accentText"] = "#ffffff";
-        m_colors["danger"] = "#cc3333";
-        m_colors["success"] = "#338833";
-        m_colors["warning"] = "#cc8833";
-        m_colors["inputBg"] = "#ffffff";
-        m_metrics["radius"] = 2;
-        m_metrics["radiusSmall"] = 1;
-        m_metrics["borderWidth"] = 1;
-    }
-    else if (name == "Aurora") {
-        m_colors["bg"] = "#0d0d1a";
-        m_colors["surface"] = "#151530";
-        m_colors["surfaceAlt"] = "#1a1a3e";
-        m_colors["border"] = "#3030a0";
-        m_colors["text"] = "#d0d0f0";
-        m_colors["textMuted"] = "#6868b0";
-        m_colors["accent"] = "#8870ff";
-        m_colors["accentText"] = "#ffffff";
-        m_colors["danger"] = "#ff5570";
-        m_colors["success"] = "#50e890";
-        m_colors["warning"] = "#ffb050";
-        m_colors["inputBg"] = "#121228";
-        m_metrics["radius"] = 12;
-        m_metrics["radiusSmall"] = 8;
-        m_metrics["borderWidth"] = 1;
-    }
-
-    emit colorsChanged();
-    emit metricsChanged();
-    emit currentThemeChanged();
 }

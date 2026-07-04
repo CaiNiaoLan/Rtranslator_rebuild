@@ -4,11 +4,17 @@
         <file>CButton.qml</file>
         <file>SectionCard.qml</file>
         <file>HomeTab.qml</file>
+        <file>HomeTabMtool.qml</file>
+        <file>HomeTabDrawer.qml</file>
         <file>TranslationTab.qml</file>
         <file>MapTab.qml</file>
         <file>VariableTab.qml</file>
         <file>EventTab.qml</file>
         <file>StatusTab.qml</file>
+        <file>MtoolShell.qml</file>
+        <file>DrawerShell.qml</file>
+        <file>FloatingShell.qml</file>
+        <file>ThemeSwitcher.qml</file>
     </qresource>
     <qresource prefix="/inject">
         <file alias="ws-client.js">../inject/ws-client.js</file>
